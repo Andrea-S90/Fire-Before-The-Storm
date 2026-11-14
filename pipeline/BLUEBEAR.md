@@ -2,7 +2,12 @@
 
 Run everything from the `pipeline/` folder. Each stage has a check; do not go on until it passes.
 Off campus you need the University VPN. If you belong to more than one BEAR project, add
-`--account=<project>` to every `sbatch` command.
+`--account=<project>` to every `sbatch` command, or set it once with
+`echo 'export SBATCH_ACCOUNT=<project>' >> ~/.bashrc` and log in again.
+
+Always start work through the provided job scripts or `source slurm/bluebear_env.sh`. Loading the Python
+module alone is not enough (`ModuleNotFoundError: No module named 'numpy'`): the libraries live in a
+virtual environment that `bluebear_env.sh` builds on first use and activates every time.
 
 ## 1. Set up (login node, once)
 
@@ -12,8 +17,7 @@ cd /rds/projects/X/PROJECT                      # your RDS project space, not yo
 git clone https://github.com/Andrea-S90/Fire-Before-The-Storm.git
 cd Fire-Before-The-Storm/pipeline
 cp slurm/bluebear.local.sh.example slurm/bluebear.local.sh
-module purge; module load bluebear; module avail Python     # pick a Python 3.11 or 3.12 module
-nano slurm/bluebear.local.sh                    # set ASHWATCH_DATA, VENV_DIR, BEAR_MODULES
+nano slurm/bluebear.local.sh                    # set the two paths; check the two `module load` lines
 bash scripts/setup_credentials.sh               # Earthdata + CDS logins -> ~/.netrc, ~/.cdsapirc
 mkdir -p logs
 ```
