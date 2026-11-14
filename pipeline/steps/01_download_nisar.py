@@ -17,14 +17,14 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from ashwatch.common import LOG, cli, load_config, n_workers, path, setup_logging  # noqa: E402
+from ashwatch.common import LOG, cli, earthdata_token, load_config, n_workers, path, setup_logging  # noqa: E402
 from ashwatch.nisar import parse_name  # noqa: E402
 
 
 def session():
     import asf_search as asf
     s = asf.ASFSession()
-    tok = os.environ.get("EARTHDATA_TOKEN")
+    tok = earthdata_token()
     if tok:
         return s.auth_with_token(tok)
     user, pw = os.environ.get("EARTHDATA_USERNAME"), os.environ.get("EARTHDATA_PASSWORD")
@@ -36,8 +36,22 @@ def session():
         except (FileNotFoundError, netrc.NetrcParseError):
             pass
     if not (user and pw):
-        raise SystemExit("No Earthdata credentials: set EARTHDATA_TOKEN, or EARTHDATA_USERNAME/PASSWORD, or ~/.netrc")
+        raise SystemExit("No Earthdata credentials: run scripts/setup_credentials.sh, or set EARTHDATA_TOKEN, or EARTHDATA_USERNAME/PASSWORD, or ~/.netrc")
     return s.auth_with_creds(user, pw)
+
+
+def size_mb(props):
+    """File size in MB, or "" if unknown. Depending on the asf_search version `bytes` is a number,
+    missing, or a dict {file name: {"bytes": n, "format": ...}} listing every file of the granule."""
+    b = props.get("bytes")
+    if isinstance(b, dict):
+        name = Path(props.get("url", "")).name
+        vals = {k: (v.get("bytes") if isinstance(v, dict) else v) for k, v in b.items()}
+        b = vals.get(name) or sum(v for v in vals.values() if isinstance(v, (int, float)))
+    try:
+        return int(float(b) // 1e6) if b else ""
+    except (TypeError, ValueError):
+        return ""
 
 
 def main():
@@ -87,7 +101,7 @@ def main():
         wr = csv.writer(f)
         wr.writerow(["date", "track", "dir", "frame", "crid", "size_mb", "url"])
         for r, i in keep:
-            wr.writerow([i["date"], i["track"], i["dir"], i["frame"], i["crid"], r.properties.get("bytes", 0) // 1e6 if r.properties.get("bytes") else "", r.properties["url"]])
+            wr.writerow([i["date"], i["track"], i["dir"], i["frame"], i["crid"], size_mb(r.properties), r.properties["url"]])
     LOG.info("Wrote %s and manifest.csv", out_dir / "urls.txt")
     if args.dry_run:
         return

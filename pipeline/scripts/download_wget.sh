@@ -65,7 +65,7 @@ if run imerg; then
   mkdir -p "$RAW/imerg"
   wget -q -O "$RAW/imerg/cmr.json" \
     "https://cmr.earthdata.nasa.gov/search/granules.json?short_name=GPM_3IMERGHHL&version=07&temporal=2026-10-01T00:00:00Z,2026-10-08T23:59:59Z&bounding_box=$BBOX_W,$BBOX_S,$BBOX_E,$BBOX_N&page_size=2000"
-  grep -oE 'https://[^"]*\.HDF5' "$RAW/imerg/cmr.json" | grep -v '\.xml' | sort -u > "$RAW/imerg/urls.txt"
+  grep -oE 'https://[^"]*\.HDF5' "$RAW/imerg/cmr.json" | grep -v '\.xml' | grep -v opendap | sort -u > "$RAW/imerg/urls.txt"
   echo "IMERG: $(wc -l < "$RAW/imerg/urls.txt") files"
   wget $EDL -c -nv -P "$RAW/imerg" -i "$RAW/imerg/urls.txt"
 fi

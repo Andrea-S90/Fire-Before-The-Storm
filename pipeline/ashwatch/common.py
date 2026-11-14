@@ -65,6 +65,15 @@ def path(cfg: dict, *parts: str, mkdir: bool = True) -> Path:
     return p
 
 
+def earthdata_token() -> str | None:
+    """Earthdata bearer token from $EARTHDATA_TOKEN or the first line of ~/.earthdata_token (if any)."""
+    tok = os.environ.get("EARTHDATA_TOKEN", "").strip()
+    f = Path.home() / ".earthdata_token"
+    if not tok and f.exists():
+        tok = f.read_text().strip().splitlines()[0].strip() if f.read_text().strip() else ""
+    return tok or None
+
+
 def n_workers() -> int:
     return int(os.environ.get("SLURM_CPUS_PER_TASK") or os.cpu_count() or 1)
 

@@ -24,17 +24,17 @@ import numpy as np
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from ashwatch.common import (LOG, cli, grid_from_config, load_config, path, setup_logging,  # noqa: E402
+from ashwatch.common import (LOG, cli, earthdata_token, grid_from_config, load_config, path, setup_logging,  # noqa: E402
                              to_grid, write_raster)
 
 UA = {"User-Agent": "AshWatch/1.0 (NASA Space Apps 2026)"}
 
 
-def fetch(url, dest: Path, chunk=1 << 20):
+def fetch(url, dest: Path, chunk=1 << 20, headers=None):
     if dest.exists() and dest.stat().st_size > 0:
         LOG.info("  have %s", dest.name)
         return dest
-    with requests.get(url, stream=True, timeout=120, headers=UA) as r:
+    with requests.get(url, stream=True, timeout=120, headers={**UA, **(headers or {})}) as r:
         if r.status_code == 404:
             LOG.warning("  404 %s", url)
             return None
@@ -227,17 +227,44 @@ def era5(cfg):
 
 # --------------------------------------------------------------------------- IMERG
 def imerg(cfg):
-    import earthaccess
-    earthaccess.login()   # uses env vars, ~/.netrc, or asks interactively
     w, s, e, n = cfg["aoi"]["bbox"]
     t0, t1 = cfg["dates"]["hindcast_start"], cfg["dates"]["hindcast_end"]
-    res = earthaccess.search_data(short_name=cfg["downloads"]["imerg_short_name"],
-                                  version=cfg["downloads"]["imerg_version"],
-                                  temporal=(f"{t0}T00:00:00", f"{t1}T23:59:59"), bounding_box=(w, s, e, n))
+    short, ver = cfg["downloads"]["imerg_short_name"], cfg["downloads"]["imerg_version"]
     out = path(cfg, "raw", "imerg", "x").parent
-    (out / "urls.txt").write_text("\n".join(l for g in res for l in g.data_links()) + "\n")
-    LOG.info("IMERG: %d granules", len(res))
-    earthaccess.download(res, local_path=str(out))
+    token = earthdata_token()
+    if not token:   # user name + password: EARTHDATA_USERNAME/PASSWORD or ~/.netrc
+        import earthaccess
+        earthaccess.login()
+        res = earthaccess.search_data(short_name=short, version=ver, temporal=(f"{t0}T00:00:00", f"{t1}T23:59:59"),
+                                      bounding_box=(w, s, e, n))
+        (out / "urls.txt").write_text("\n".join(l for g in res for l in g.data_links()) + "\n")
+        LOG.info("IMERG: %d granules", len(res))
+        earthaccess.download(res, local_path=str(out))
+        return
+    # Token route: the catalogue search needs no login; each file is fetched with the bearer token.
+    r = requests.get("https://cmr.earthdata.nasa.gov/search/granules.json", timeout=120, headers=UA,
+                     params={"short_name": short, "version": ver, "page_size": 2000,
+                             "temporal": f"{t0}T00:00:00Z,{t1}T23:59:59Z", "bounding_box": f"{w},{s},{e},{n}"})
+    r.raise_for_status()
+    urls = sorted({l["href"] for g in r.json()["feed"]["entry"] for l in g.get("links", [])
+                   if l.get("rel", "").endswith("/data#") and l.get("href", "").startswith("https://")
+                   and l["href"].upper().endswith((".HDF5", ".H5"))})
+    (out / "urls.txt").write_text("\n".join(urls) + "\n")
+    LOG.info("IMERG: %d files", len(urls))
+    if not urls:
+        raise SystemExit("No IMERG files found for the hindcast window")
+    missing = 0
+    for url in urls:
+        try:
+            missing += fetch(url, out / Path(url).name, headers={"Authorization": f"Bearer {token}"}) is None
+        except requests.HTTPError as ex:
+            if ex.response.status_code in (401, 403):
+                raise SystemExit(f"IMERG download refused ({ex.response.status_code}): the token is wrong or "
+                                 "expired, or the 'NASA GESDISC DATA ARCHIVE' app is not approved in your "
+                                 "Earthdata profile")
+            raise
+    if missing:
+        raise SystemExit(f"{missing} IMERG files were not found")
 
 
 # --------------------------------------------------------------------------- water-table depth (optional)
