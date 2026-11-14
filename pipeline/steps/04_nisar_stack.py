@@ -40,6 +40,9 @@ def _one(args):
 
 def main():
     ap = cli(__doc__)
+    ap.add_argument("--rebuild", action="store_true",
+                    help="forget dates gridded in earlier runs (default: keep them, so raw files can be "
+                         "processed and deleted pass by pass)")
     args = ap.parse_args()
     setup_logging()
     cfg = load_config(args.config)
@@ -76,7 +79,17 @@ def main():
             rec[p] = fp.name
             rec[f"{p}_valid_pct"] = round(100 * float(np.isfinite(a).mean()), 1)
         rows.append(rec)
-    with open(path(cfg, "work", "nisar", "index.csv"), "w", newline="") as fh:
+    # keep dates gridded in earlier runs whose rasters are still there (raw files may be gone by now)
+    index_p = path(cfg, "work", "nisar", "index.csv")
+    if index_p.exists() and not args.rebuild:
+        done = {(r["date"], r["key"]) for r in rows}
+        with open(index_p, newline="") as fh:
+            old = [r for r in csv.DictReader(fh) if (r["date"], r["key"]) not in done
+                   and all((index_p.parent / r[p]).exists() for p in ("HH", "HV") if r.get(p))]
+        if old:
+            LOG.info("Keeping %d dates x passes from earlier runs", len(old))
+        rows = sorted(rows + old, key=lambda r: (r["date"], r["key"], r["crid"]))
+    with open(index_p, "w", newline="") as fh:
         wr = csv.DictWriter(fh, fieldnames=["date", "key", "track", "dir", "crid", "HH", "HV",
                                             "HH_valid_pct", "HV_valid_pct"])
         wr.writeheader()

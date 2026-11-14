@@ -44,6 +44,8 @@ def main():
     ap = cli(__doc__)
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--max-files", type=int, default=0)
+    ap.add_argument("--passes", nargs="*", default=[], metavar="TRACKDIR",
+                    help="only these passes, e.g. 087A 095D (see the track and dir columns of manifest.csv)")
     args = ap.parse_args()
     setup_logging()
     cfg = load_config(args.config)
@@ -71,6 +73,8 @@ def main():
     keep = [(r, info) for _, r, info in best.values()]
     keep.sort(key=lambda t: t[1]["datetime"])
     LOG.info("%d products listed, %d kept after dropping other configs and older duplicates", n_listed, len(keep))
+    if args.passes:
+        keep = [t for t in keep if t[1]["key"] in args.passes]
     if args.max_files:
         keep = keep[: args.max_files]
     LOG.info("%d GCOV products after filtering (production config %s)", len(keep), cfg["nisar"]["production_config"])

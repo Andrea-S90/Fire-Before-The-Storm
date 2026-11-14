@@ -18,7 +18,9 @@ bash scripts/setup_credentials.sh               # Earthdata + CDS logins -> ~/.n
 mkdir -p logs
 ```
 
-Check: `df -h /rds/projects/X/PROJECT` shows about 100 GB free.
+Check: `df -h /rds/projects/X/PROJECT` and note the free space. The raw NISAR files alone are about 69 GB
+(38 files of 1.5 to 2.1 GB). With 90 GB or more free you can keep them all; with less (30 GB is enough)
+use the pass-by-pass route in stage 4, which grids each pass and then deletes its raw files.
 
 ## 2. Smoke test (about 10 minutes)
 
@@ -84,6 +86,30 @@ sourcing the environment as in stage 3. Login-node processes can be stopped with
 resumes where it stopped, so just start it again.
 
 Check: `ls $ASHWATCH_DATA/raw/nisar/*.h5 | wc -l` matches `wc -l < $ASHWATCH_DATA/raw/nisar/urls.txt`.
+
+### Less than 90 GB free: pass by pass
+
+`INTERNET: yes`:
+
+```bash
+sbatch --export=ALL,NISAR_BATCHES=1 slurm/bluebear_download.sbatch
+```
+
+This downloads the small inputs, then for each of the four passes: download (15 to 20 GB), grid it
+(step 04), check every date is in the stack, delete the raw files. If a date is missing it stops and keeps
+the raw files. Submit again to resume.
+
+`INTERNET: no`: do the same by hand, once per pass (`023D`, `087A`, `095D`, `159A`):
+
+```bash
+python steps/01_download_nisar.py --passes 087A                                   # login node
+sbatch --time=30:0 --export=ALL,STEPS="04" slurm/bluebear_process.sbatch          # wait for it to finish
+grep -c ',087A,' $ASHWATCH_DATA/work/nisar/index.csv                              # = number of dates downloaded
+rm $ASHWATCH_DATA/raw/nisar/NISAR_L2_PR_GCOV_???_087_A_*.h5
+```
+
+Check: `index.csv` has 38 rows plus the header. In stage 5, leave out step 04 (the raw files are gone):
+`sbatch --export=ALL,STEPS="03 05 06 07 08 09 10 11 12" slurm/bluebear_process.sbatch`.
 
 ## 5. Full processing
 
