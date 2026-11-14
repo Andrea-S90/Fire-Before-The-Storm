@@ -1,0 +1,137 @@
+# Ash Watch configuration: Burgohondo / Ávila fire, July 2026.
+# Every assumption that is not measured is marked ASSUMPTION; change it here, not in code.
+
+name: avila-2026
+
+paths:
+  # Where raw downloads and intermediate files go. Relative paths are relative to this file.
+  # Override on the cluster with:  export ASHWATCH_DATA=/scratch/$USER/ashwatch
+  data_root: ../../data
+  # Where step 12 writes the web-ready files (the data contract for the story site)
+  web_out: ../../web/public/data
+
+aoi:
+  # lon_min, lat_min, lon_max, lat_max (WGS84). Covers the Alberche and Tiétar valleys around the fire.
+  bbox: [-5.05, 40.15, -4.25, 40.60]
+  center: [-4.70, 40.38]
+
+grid:
+  crs: EPSG:25830        # ETRS89 / UTM 30N
+  res_m: 30
+  margin_m: 3000         # extra border so catchments at the edge are complete
+
+dates:
+  # NISAR PROVISIONAL products start 2026-06-17; no data 2026-07-27 to 2026-08-10.
+  pre_start: 2026-06-17
+  fire_start: 2026-07-22   # first detections near Burgohondo
+  fire_end: 2026-08-06     # fire stabilised
+  post_start: 2026-08-07
+  post_end: 2026-09-25     # before the autumn rains, so soil moisture does not mask the burn
+  series_end: 2026-11-14   # recovery time series
+  hindcast_start: 2026-10-01
+  hindcast_end: 2026-10-08
+  era5_start: 2026-07-15
+  era5_end: 2026-10-10
+  s2_pre: [2026-07-01, 2026-07-21]
+  s2_post: [2026-08-07, 2026-08-31]
+
+nisar:
+  product: GCOV
+  production_config: PR      # PR = standard products; UR = urgent response duplicates (skipped)
+  frequency: frequencyA
+  pols: [HHHH, HVHV]
+
+sentinel2:
+  stac_url: https://earth-search.aws.element84.com/v1
+  collection: sentinel-2-l2a
+  max_cloud: 40
+  max_items_per_period: 6
+  assets: [nir08, swir22, scl]
+
+downloads:
+  dem_base: https://copernicus-dem-30m.s3.amazonaws.com
+  # ESA CCI Biomass v5.01 (Mg/ha, 100 m). If the listing fails, download the tile covering 40N 5W by hand
+  # from https://catalogue.ceda.ac.uk/uuid/bf535053562141c6bb7ad831f5998d77 into data/raw/cci/
+  cci_base: https://dap.ceda.ac.uk/neodc/esacci/biomass/data/agb/maps/v5.01/geotiff/2021/
+  soilgrids_base: https://files.isric.org/soilgrids/latest/data
+  overpass_url: https://overpass-api.de/api/interpreter
+  imerg_short_name: GPM_3IMERGHHL    # IMERG Late run, half-hourly, V07
+  imerg_version: "07"
+  # Optional global water-table depth (Fan et al. 2013). Leave empty to use the terrain proxy (HAND).
+  wtd_url: ""
+
+# Burn severity classes from Sentinel-2 dNBR x 1000 (Key and Benson): 0 unburned, 1 low, 2 moderate, 3 high
+severity:
+  dnbr_breaks: [100, 270, 660]
+  # Used only when no Sentinel-2 dNBR is available: radar HV change (dB) breaks for low/moderate/high. ASSUMPTION
+  dhv_breaks_db: [-1.0, -2.5, -4.0]
+  rf_samples: 40000
+
+fuel:
+  # Fit range for the HV -> biomass regression on ESA CCI pixels (Mg/ha)
+  fit_agb_min: 5
+  fit_agb_max: 150
+  saturation_mg_ha: 100     # L-band HV loses sensitivity around here; flagged in outputs
+  max_agb: 300
+  fallback_hv_db_range: [-25, -12]   # only if no CCI: linear HV->AGB scaling. ASSUMPTION
+  fallback_max_agb: 150              # ASSUMPTION
+
+ash:
+  # ASSUMPTION ranges, sampled uniformly in the Monte Carlo; best estimate = midpoint.
+  # Fraction of tree biomass (AGB) consumed by class [low, moderate, high]
+  agb_consumed: [[0.00, 0.05], [0.05, 0.20], [0.20, 0.40]]
+  # Litter, duff and understory fuel not in AGB (t/ha), and fraction consumed by class
+  surface_fuel_t_ha: [8, 20]
+  surface_consumed: [[0.30, 0.60], [0.60, 0.90], [0.90, 1.00]]
+  # Ash produced per unit fuel consumed (Quigley et al. 2019 measured ~12.5%)
+  ash_fraction: [0.05, 0.20]
+  mc_draws: 5000
+  seed: 42
+
+hydro:
+  stream_area_km2: 0.10        # cells draining more than this are streams
+  m1_min_area_km2: 0.025       # Staley M1 applies to small, steep catchments
+  m1_max_area_km2: 8.0
+  steep_slope_deg: 23
+  # Staley et al. 2017 M1 parameters for 15-min rainfall (B, Ct, Cf, Cs)
+  m1_15min: [-3.63, 0.41, 0.67, 0.70]
+  design_intensities_mm_h: [16, 20, 24, 40]
+  # RUSLE cover factor C by class [unburned, low, moderate, high]. ASSUMPTION (post-fire literature ranges)
+  rusle_c: [0.003, 0.05, 0.20, 0.35]
+
+wind:
+  sector_count: 16
+  speed_bins_m_s: [0, 2, 4, 6, 8, 100]
+  decay_km: 8          # exposure falls off as exp(-distance / decay). ASSUMPTION
+  coarse_factor: 8     # exposure grid = res_m * factor
+  max_sources: 800
+  windy_day_m_s: 8
+  first_rain_mm_day: 10
+
+groundwater:
+  well_radius_m: 1500
+  upslope_tolerance_m: 5
+  town_search_radius_m: 3000
+  # DRASTIC weights for the factors we can map (depth, recharge, aquifer, soil, topography)
+  weights: {D: 5, R: 4, A: 3, S: 2, T: 1}
+  recharge_rating: 5      # ASSUMPTION: uniform over a small AOI
+  aquifer_rating: 5       # ASSUMPTION unless GLHYMPS permeability is provided
+
+towns:
+  snap_radius_m: 300        # a town is snapped to the largest stream within this distance ...
+  max_snap_m: 1500          # ... widening up to this distance until it drains at least:
+  min_catchment_km2: 1.0
+  include_osm_places: [town, village]
+  # Towns named in the October 2026 reports (always included; coordinates come from OSM by name)
+  named: [Casavieja, Piedralaves, El Barraco, Burgohondo, Navaluenga, El Tiemblo, Cebreros, La Adrada, Sotillo de la Adrada]
+  reservoirs: [Embalse de El Burguillo, Embalse de San Juan]
+  levels:
+    runoff_modhigh_share: [0.05, 0.20]     # medium, high
+    runoff_ash_t: [100, 1000]
+    debris_p24: [0.4, 0.6]
+    groundwater_score: [0.25, 0.5]
+    airborne_exposure: [0.25, 0.5]
+  tests: [turbidity, manganese, zinc, lead, nitrate, phosphorus, dissolved organic carbon]
+
+export:
+  max_png_px: 2048

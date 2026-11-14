@@ -1,0 +1,18 @@
+# big data stays on the cluster
+data/
+*.h5
+*.HDF5
+*.nc
+*.tif
+!web/public/**
+logs/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+node_modules/
+dist/
+.env
+.netrc
+.cdsapirc
+# BlueBEAR site settings (paths, module names)
+slurm/bluebear.local.sh
