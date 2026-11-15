@@ -53,7 +53,7 @@ def to_mercator(src_path, max_px, categorical):
                   dst_transform=tr2, dst_crs=dst_crs, dst_nodata=np.nan,
                   resampling=Resampling.nearest if categorical else Resampling.average)
         b = rasterio.transform.array_bounds(h2, w2, tr2)
-        west, south, east, north = transform_bounds(dst_crs, "EPSG:4326", b[1], b[0], b[3], b[2])
+        west, south, east, north = transform_bounds(dst_crs, "EPSG:4326", *b)   # b = (left, bottom, right, top)
     return out, [[west, north], [east, north], [east, south], [west, south]]
 
 
@@ -155,7 +155,7 @@ def main():
             shutil.copy(p, web / name)
 
     meta = dict(generated=datetime.now(timezone.utc).isoformat(timespec="seconds"), config=cfg["name"],
-                aoi_bbox=cfg["aoi"]["bbox"], dates={k: str(v) for k, v in cfg["dates"].items()})
+                aoi_bbox=cfg["aoi"]["bbox"], dates={k: [str(x) for x in v] if isinstance(v, list) else str(v) for k, v in cfg["dates"].items()})
     for k, rel in (("severity", "severity/metrics.json"), ("ash", "ash/summary.json"), ("hydro", "hydro/summary.json"),
                    ("wind", "wind/summary.json"), ("groundwater", "groundwater/summary.json")):
         p = path(cfg, "work", rel, mkdir=False)
