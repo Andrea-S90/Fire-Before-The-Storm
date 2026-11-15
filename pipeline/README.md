@@ -82,7 +82,7 @@ sbatch --export=ALL,STEPS="10 11 12" slurm/process.sbatch          # re-run only
 | --- | --- | --- |
 | 03 | DEM, Sentinel-2 dNBR, CCI biomass, soil and erodibility onto one 30 m grid (EPSG:25830) | `grid/*.tif` |
 | 04 | Every GCOV file cut to the AOI, HH/HV averaged to 30 m, frames mosaicked | `nisar/*_HV.tif`, `index.csv` |
-| 05 | Fuel: HV -> biomass fitted on CCI. Severity: per-pass HV/HH change, random forest vs dNBR | `fuel/agb.tif`, `severity/class.tif`, `metrics.json` |
+| 05 | Fuel: HV -> biomass fitted on CCI. Severity: burned where the per-pass HV drop and Sentinel-2 dNBR agree; class from dNBR, random forest on radar where dNBR is missing | `fuel/agb.tif`, `severity/class.tif`, `metrics.json` |
 | 06 | Ash load per pixel (best estimate) and total with Monte Carlo range | `ash/ash_t_ha.tif` |
 | 07 | Flow routing, Staley M1 likelihood + trigger rain, erosion index, ash transport, streams | `hydro/*.tif`, `streams.geojson` |
 | 08 | ERA5 wind rose during the fire, downwind exposure, dry windy days | `wind/rose.json`, `exposure.tif` |
@@ -106,6 +106,11 @@ record per town described in the plan doc; vectors are WGS84 GeoJSON.
 - **Radar change** is computed per pass (same track and direction) so the viewing geometry is identical, then
   averaged across passes. Pre-fire = Jun 17 to Jul 21, post-fire = Aug 7 to Sep 25 (before autumn rain, so soil
   moisture does not mimic burn). HV tracks woody biomass; HH responds to soil moisture and roughness.
+- **Burned area**: a pixel is burned only if HV fell by at least `severity.burn_dhv_db` (1 dB) relative to the
+  scene median and Sentinel-2 dNBR reaches 100, in patches of 5 ha or more. dNBR alone flags summer drying and
+  harvest; radar alone flags moisture and swath-edge effects; requiring both removes most of each. Under cloud
+  the radar decides alone. `metrics.json` reports how often the two agree. An EFFIS perimeter in `raw/effis/`
+  limits the burn further.
 - **Fuel**: `ln(AGB) = a + b * HV_dB`, fitted on ESA CCI pixels between 5 and 150 Mg/ha. L-band HV saturates
   around 100 Mg/ha, so those pixels are flagged and the ash there is a lower bound.
 - **Debris flow**: Staley et al. (2017) M1, 15-min parameters from the config, implemented directly

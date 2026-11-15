@@ -8,14 +8,23 @@ if [ ! -f slurm/bluebear.local.sh ]; then
   return 1 2>/dev/null || exit 1
 fi
 source slurm/bluebear.local.sh
-case "${BEAR_MODULES}${ASHWATCH_DATA}${VENV_DIR}" in
-  *CHANGE_ME*|*/X/PROJECT/*)
-    echo "slurm/bluebear.local.sh still has placeholder values: edit it first" >&2
+case "${ASHWATCH_DATA:-}${VENV_DIR:-}" in
+  ""|*CHANGE_ME*|*/X/PROJECT/*)
+    echo "slurm/bluebear.local.sh: set ASHWATCH_DATA and VENV_DIR to folders in your RDS project" >&2
     return 1 2>/dev/null || exit 1 ;;
 esac
 
-for _m in $BEAR_MODULES; do module load "$_m"; done
+# Older settings files list the modules in BEAR_MODULES instead of writing `module load` lines.
+# Accept that too, with or without the words "module load" in the list.
+for _m in ${BEAR_MODULES:-}; do
+  case "$_m" in module|load|\;) ;; *) module load "$_m" ;; esac
+done
 unset _m
+
+if ! python3 -c 'import sys; sys.exit(not ((3, 11) <= sys.version_info[:2] <= (3, 12)))' 2>/dev/null; then
+  echo "slurm/bluebear.local.sh must load a Python 3.11 or 3.12 module; found: $(python3 --version 2>&1)" >&2
+  return 1 2>/dev/null || exit 1
+fi
 
 export ASHWATCH_DATA
 export PIP_CACHE_DIR="/scratch/${USER}/pip"          # home quota is small

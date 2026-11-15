@@ -2,7 +2,12 @@
 
 Run everything from the `pipeline/` folder. Each stage has a check; do not go on until it passes.
 Off campus you need the University VPN. If you belong to more than one BEAR project, add
-`--account=<project>` to every `sbatch` command.
+`--account=<project>` to every `sbatch` command, or set it once with
+`echo 'export SBATCH_ACCOUNT=<project>' >> ~/.bashrc` and log in again.
+
+Always start work through the provided job scripts or `source slurm/bluebear_env.sh`. Loading the Python
+module alone is not enough (`ModuleNotFoundError: No module named 'numpy'`): the libraries live in a
+virtual environment that `bluebear_env.sh` builds on first use and activates every time.
 
 ## 1. Set up (login node, once)
 
@@ -12,9 +17,8 @@ cd /rds/projects/X/PROJECT                      # your RDS project space, not yo
 git clone https://github.com/Andrea-S90/Fire-Before-The-Storm.git
 cd Fire-Before-The-Storm/pipeline
 cp slurm/bluebear.local.sh.example slurm/bluebear.local.sh
-module purge; module load bluebear; module avail Python     # pick a Python 3.11 or 3.12 module
-nano slurm/bluebear.local.sh                    # set ASHWATCH_DATA, VENV_DIR, BEAR_MODULES
-bash scripts/setup_credentials.sh               # Earthdata + CDS logins -> ~/.netrc, ~/.cdsapirc
+nano slurm/bluebear.local.sh                    # set the two paths; check the two `module load` lines
+bash scripts/setup_credentials.sh               # Earthdata token + CDS token -> ~/.earthdata_token, ~/.cdsapirc
 mkdir -p logs
 ```
 
@@ -62,10 +66,13 @@ python steps/inspect_gcov.py "$(ls $ASHWATCH_DATA/raw/nisar/*_PR_GCOV_*.h5 | hea
 ```
 
 Checks:
-- The search reports about 38 products kept (4 passes: 023D, 087A, 095D, 159A).
+- The search reports about 40 products kept (4 passes: 023D, 087A, 095D, 159A); the number grows as new
+  acquisitions are published.
 - `inspect_gcov.py` prints `HHHH` and `HVHV` with medians between about -25 and -5 dB. If it fails, the
   HDF5 layout differs from what `ashwatch/nisar.py` expects: fix that before going on.
-- No source is listed under `Failed sources`. For 401/403 errors approve the ASF and GES DISC apps in your
+- No source is listed under `Failed sources`. `Invalid user credentials` means the Earthdata user name or
+  password is wrong: run `scripts/setup_credentials.sh` again and paste a token instead. `Missing/incomplete
+  configuration file: ~/.cdsapirc` means the CDS token was skipped: run it again and enter it. For 401/403 errors approve the ASF and GES DISC apps in your
   Earthdata profile; for ERA5 accept the licence on the CDS dataset page.
 
 Then grid the two files:
@@ -108,7 +115,7 @@ grep -c ',087A,' $ASHWATCH_DATA/work/nisar/index.csv                            
 rm $ASHWATCH_DATA/raw/nisar/NISAR_L2_PR_GCOV_???_087_A_*.h5
 ```
 
-Check: `index.csv` has 38 rows plus the header. In stage 5, leave out step 04 (the raw files are gone):
+Check: `index.csv` has one row per product the search kept, plus the header. In stage 5, leave out step 04 (the raw files are gone):
 `sbatch --export=ALL,STEPS="03 05 06 07 08 09 10 11 12" slurm/bluebear_process.sbatch`.
 
 ## 5. Full processing

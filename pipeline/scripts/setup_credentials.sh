@@ -10,17 +10,30 @@
 #    - Open the ERA5 single-levels dataset page once and accept the licence (Download tab, bottom)
 set -euo pipefail
 
-read -rp "Earthdata username: " EDU
-read -rsp "Earthdata password: " EDP; echo
-touch ~/.netrc && chmod 600 ~/.netrc
-grep -q "urs.earthdata.nasa.gov" ~/.netrc 2>/dev/null || \
-  echo "machine urs.earthdata.nasa.gov login ${EDU} password ${EDP}" >> ~/.netrc
+echo "Earthdata login. A token is the most reliable: https://urs.earthdata.nasa.gov -> Generate Token."
+echo "It is valid for 60 days; run this script again to replace it."
+read -rsp "Earthdata token (paste, then Enter; leave empty to use user name + password): " EDT; echo
+if [ -n "${EDT}" ]; then
+  ( umask 077; printf '%s\n' "${EDT}" > ~/.earthdata_token )
+  echo "  saved ~/.earthdata_token"
+else
+  read -rp "Earthdata username (not the e-mail address; leave empty to skip): " EDU
+  if [ -n "${EDU}" ]; then
+    read -rsp "Earthdata password: " EDP; echo
+    touch ~/.netrc && chmod 600 ~/.netrc
+    # replace any earlier entry, so a mistyped password can be corrected by running this again
+    grep -v "urs.earthdata.nasa.gov" ~/.netrc > ~/.netrc.tmp || true
+    echo "machine urs.earthdata.nasa.gov login ${EDU} password ${EDP}" >> ~/.netrc.tmp
+    chmod 600 ~/.netrc.tmp && mv ~/.netrc.tmp ~/.netrc
+    rm -f ~/.earthdata_token ~/.urs_cookies
+    echo "  saved ~/.netrc"
+  fi
+fi
 touch ~/.urs_cookies
 
-read -rp "CDS personal access token (leave empty to skip ERA5): " CDSK
+read -rsp "CDS personal access token (leave empty to skip ERA5): " CDSK; echo
 if [ -n "${CDSK}" ]; then
-  printf "url: https://cds.climate.copernicus.eu/api\nkey: %s\n" "${CDSK}" > ~/.cdsapirc
-  chmod 600 ~/.cdsapirc
+  ( umask 077; printf "url: https://cds.climate.copernicus.eu/api\nkey: %s\n" "${CDSK}" > ~/.cdsapirc )
+  echo "  saved ~/.cdsapirc"
 fi
-echo "Done. ~/.netrc and ~/.cdsapirc are set (chmod 600)."
-echo "Optional: export EARTHDATA_TOKEN=<token from urs.earthdata.nasa.gov -> Generate Token> for token auth."
+echo "Done. Check with:  python steps/01_download_nisar.py --dry-run"

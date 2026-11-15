@@ -5,6 +5,7 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p logs
 python steps/01_download_nisar.py --dry-run          # writes data/raw/nisar/urls.txt first
-python steps/02_download_ancillary.py dem s2 cci soil osm era5 imerg wtd
-python steps/01_download_nisar.py                     # the big one last (tens of GB)
+python steps/02_download_ancillary.py dem s2 cci soil osm imerg wtd
+python steps/01_download_nisar.py                     # the big one (tens of GB)
+python steps/02_download_ancillary.py era5            # last: the CDS queues requests, sometimes for hours
 echo "Downloads finished: $(date)"
