@@ -63,7 +63,11 @@ downloads:
 # Burn severity classes from Sentinel-2 dNBR x 1000 (Key and Benson): 0 unburned, 1 low, 2 moderate, 3 high
 severity:
   dnbr_breaks: [100, 270, 660]
-  # Used only when no Sentinel-2 dNBR is available: radar HV change (dB) breaks for low/moderate/high. ASSUMPTION
+  # A pixel is burned only if the HV backscatter fell by at least this much (dB, relative to the scene
+  # median, 5x5 median filter) AND dNBR reaches the first break. Under cloud the radar decides alone. ASSUMPTION
+  burn_dhv_db: -1.0
+  min_burn_patch_ha: 5       # smaller isolated patches are treated as noise
+  # Classes from radar alone, where dNBR is missing and no model can be trained: HV change (dB) breaks. ASSUMPTION
   dhv_breaks_db: [-1.0, -2.5, -4.0]
   rf_samples: 40000
 

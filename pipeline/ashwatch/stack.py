@@ -38,10 +38,13 @@ def period_mean(cfg, rows, pol, d0, d1):
         return np.nanmean(np.stack(arrs), axis=0), len(sel)
 
 
-def change_db(cfg, rows, pol, pre, post):
+def change_db(cfg, rows, pol, pre, post, normalize=False):
     """Per-pass change (post/pre, dB) averaged across passes, weighted by dates used.
 
     Comparing each pass only with itself keeps the viewing geometry identical.
+    normalize=True subtracts each pass's median change over the whole scene first, so that what is left is
+    change relative to the landscape (summer drying, calibration drift and soil moisture shift every pixel;
+    a fire is a small share of the scene and does not move the median).
     Returns (change_db, pre_db, post_db, passes_used).
     """
     num = den = None
@@ -54,6 +57,8 @@ def change_db(cfg, rows, pol, pre, post):
             continue
         wgt = min(n0, n1)
         ch = db(a1) - db(a0)
+        offset = float(np.nanmedian(ch)) if normalize and np.isfinite(ch).any() else 0.0
+        ch = ch - offset
         ok = np.isfinite(ch)
         if num is None:
             num = np.zeros_like(ch)
@@ -64,7 +69,7 @@ def change_db(cfg, rows, pol, pre, post):
         pre_acc[ok] += wgt * db(a0)[ok]
         post_acc[ok] += wgt * db(a1)[ok]
         den[ok] += wgt
-        used.append(dict(key=key, pre_dates=n0, post_dates=n1))
+        used.append(dict(key=key, pre_dates=n0, post_dates=n1, scene_median_db=round(offset, 2)))
     if num is None:
         raise SystemExit(f"No pass has {pol} both before and after the fire: check dates in the config")
     with np.errstate(invalid="ignore", divide="ignore"):

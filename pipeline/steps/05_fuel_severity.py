@@ -38,8 +38,8 @@ def main():
     pre, post = (d["pre_start"], d["fire_start"]), (d["post_start"], d["post_end"])
     metrics = dict(pre_window=pre, post_window=post)
 
-    dhv, hv_pre, hv_post, used = change_db(cfg, rows, "HV", pre, post)
-    dhh, hh_pre, hh_post, _ = change_db(cfg, rows, "HH", pre, post)
+    dhv, hv_pre, hv_post, used = change_db(cfg, rows, "HV", pre, post, normalize=True)
+    dhh, hh_pre, hh_post, _ = change_db(cfg, rows, "HH", pre, post, normalize=True)
     metrics["passes"] = used
     for name, a in (("dhv_db", dhv), ("dhh_db", dhh), ("hv_pre_db", hv_pre), ("hv_post_db", hv_post),
                     ("hh_pre_db", hh_pre), ("hh_post_db", hh_post)):
@@ -75,70 +75,108 @@ def main():
     metrics["fuel"]["saturated_share"] = float(sat[np.isfinite(hv_pre)].mean())
 
     # ---------------- severity
-    feats = np.stack([dhv, dhh, dhv - dhh, hv_pre, hh_pre]).reshape(5, -1).T
-    valid = np.all(np.isfinite(feats), axis=1)
-    sev = np.full(grid.shape, np.nan, "float32")
-    prob = np.full(grid.shape, np.nan, "float32")
+    # A pixel counts as burned only where the radar and, where it can see the ground, Sentinel-2 agree:
+    #   radar    smoothed HV change (relative to the landscape median) at or below severity.burn_dhv_db
+    #   optical  dNBR at or above the first break; under cloud or smoke the radar decides alone
+    # and only in patches of at least severity.min_burn_patch_ha (and inside the official perimeter if given).
+    # Inside the burn the class comes from dNBR; where dNBR is missing, a random forest trained on the
+    # burned pixels predicts the class from the radar features.
+    from scipy.ndimage import binary_dilation, label, median_filter
+    sc = cfg["severity"]
+    gate_db = float(sc.get("burn_dhv_db", -1.0))
+    px_ha = grid.res ** 2 / 1e4
+    seen = np.isfinite(dhv)
+    dhv_s = median_filter(np.nan_to_num(dhv, nan=0.0), size=5)        # 5 x 5 median against speckle
+    radar_burn = seen & (dhv_s <= gate_db)
     dnbr_p = path(cfg, "work", "grid", "dnbr.tif")
-    if dnbr_p.exists():
+    dnbr = read_raster(dnbr_p) if dnbr_p.exists() else None
+    if dnbr is not None:
+        has_opt = np.isfinite(dnbr)
+        opt_burn = has_opt & (dnbr >= sc["dnbr_breaks"][0])
+        burn = radar_burn & (opt_burn | ~has_opt)
+    else:
+        has_opt = np.zeros(grid.shape, bool)
+        burn = radar_burn
+    perim_p = path(cfg, "work", "grid", "perimeter.tif")
+    if perim_p.exists():   # nothing is burned outside the official perimeter (+ ~500 m)
+        per = binary_dilation(read_raster(perim_p) > 0, iterations=max(1, int(500 / grid.res)))
+        burn &= per
+    lab, _ = label(burn)                                              # drop small isolated patches
+    sizes = np.bincount(lab.ravel())
+    keep = sizes >= max(2, int(float(sc.get("min_burn_patch_ha", 5)) / px_ha))
+    keep[0] = False
+    burn = keep[lab]
+
+    def radar_class(a):   # fixed HV-change breaks (more negative = more severe); at least "low" inside the burn
+        br = sc["dhv_breaks_db"]
+        return 1 + (a <= br[1]).astype("float32") + (a <= br[2]).astype("float32")
+
+    sev = np.where(seen, 0, np.nan).astype("float32")
+    prob = np.full(grid.shape, np.nan, "float32")
+    info = dict(method="burned where NISAR HV drop and Sentinel-2 dNBR agree; class from dNBR, "
+                       "random forest on NISAR features where dNBR is missing",
+                burn_dhv_db=gate_db, min_burn_patch_ha=sc.get("min_burn_patch_ha", 5),
+                perimeter_used=perim_p.exists())
+    if dnbr is None:
+        sev[burn] = radar_class(dhv_s)[burn]
+        info["method"] = "NISAR HV drop only, classes from fixed HV-change breaks (ASSUMPTION, no dNBR)"
+    else:
         from sklearn.ensemble import RandomForestClassifier
         from sklearn.metrics import cohen_kappa_score, confusion_matrix
-        labels = classify_dnbr(read_raster(dnbr_p), cfg["severity"]["dnbr_breaks"]).ravel()
-        train = np.flatnonzero(valid & np.isfinite(labels))
-        rng = np.random.default_rng(1)
-        # balance: up to rf_samples / 4 per class
-        per = cfg["severity"]["rf_samples"] // 4
-        pick = np.concatenate([rng.choice(train[labels[train] == c], size=min(per, int((labels[train] == c).sum())),
-                                          replace=False) for c in range(4) if (labels[train] == c).any()])
-        rng.shuffle(pick)
-        cut = int(0.7 * pick.size)
-        tr, te = pick[:cut], pick[cut:]
-        rf = RandomForestClassifier(n_estimators=200, max_depth=14, min_samples_leaf=5, n_jobs=n_workers(),
-                                    class_weight="balanced", random_state=0)
-        rf.fit(feats[tr], labels[tr].astype(int))
-        pred_te = rf.predict(feats[te])
-        kappa = float(cohen_kappa_score(labels[te].astype(int), pred_te))
-        acc = float((pred_te == labels[te].astype(int)).mean())
-        cm = confusion_matrix(labels[te].astype(int), pred_te, labels=list(rf.classes_)).tolist()
-        p_all = np.full((valid.size, len(rf.classes_)), np.nan, "float32")
-        vi = np.flatnonzero(valid)
-        for s in range(0, vi.size, 2_000_000):
-            p_all[vi[s:s + 2_000_000]] = rf.predict_proba(feats[vi[s:s + 2_000_000]])
-        sev.ravel()[vi] = np.asarray(rf.classes_)[np.nanargmax(p_all[vi], axis=1)]
-        prob.ravel()[vi] = np.nanmax(p_all[vi], axis=1)
-        metrics["severity"] = dict(method="random forest on NISAR change, labels from Sentinel-2 dNBR",
-                                   holdout_accuracy=acc, kappa=kappa, confusion=cm,
-                                   classes=[CLASSES[int(c)] for c in rf.classes_],
-                                   feature_importance=dict(zip(["dHV", "dHH", "dHV-dHH", "HV_pre", "HH_pre"],
-                                                               rf.feature_importances_.round(3).tolist())))
-        LOG.info("Severity RF: accuracy %.2f, kappa %.2f (holdout n=%d)", acc, kappa, te.size)
-    else:
-        br = cfg["severity"]["dhv_breaks_db"]          # more negative = more severe
-        c = np.zeros(grid.shape, "float32")
-        for k, thr in enumerate(br, start=1):
-            c[dhv <= thr] = k
-        c[~np.isfinite(dhv)] = np.nan
-        sev = c
-        metrics["severity"] = dict(method="HV change thresholds (ASSUMPTION, no dNBR)", breaks_db=br)
-
-    perim_p = path(cfg, "work", "grid", "perimeter.tif")
-    if perim_p.exists():   # outside the official perimeter (+ ~500 m) nothing is burned
-        from scipy.ndimage import binary_dilation
-        per = read_raster(perim_p) > 0
-        per = binary_dilation(per, iterations=max(1, int(500 / grid.res)))
-        sev[~per & np.isfinite(sev)] = 0
-    else:   # drop isolated speckle pixels: keep burned clusters of >= 1 ha
-        from scipy.ndimage import label
-        lab, n = label(np.nan_to_num(sev) >= 1)
-        sizes = np.bincount(lab.ravel())
-        small = sizes < max(2, int(1e4 / grid.res ** 2))
-        small[0] = False
-        sev[small[lab]] = 0
+        cls = np.clip(np.digitize(np.nan_to_num(dnbr), sc["dnbr_breaks"]), 1, 3).astype("float32")
+        opt = burn & has_opt
+        gap = burn & ~has_opt
+        sev[opt] = cls[opt]
+        # how well the radar alone finds the burn, judged against dNBR on clear pixels
+        both = seen & has_opt
+        r, o = radar_burn[both], opt_burn[both]
+        info["radar_vs_optical"] = dict(
+            agreement=float((r == o).mean()), kappa=float(cohen_kappa_score(o, r)) if o.any() and r.any() else None,
+            both_ha=float((r & o).sum() * px_ha), radar_only_ha=float((r & ~o).sum() * px_ha),
+            optical_only_ha=float((~r & o).sum() * px_ha),
+            note="optical-only is mostly summer drying and harvest, not fire")
+        feats = np.stack([dhv, dhh, dhv - dhh, hv_pre, hh_pre]).reshape(5, -1).T
+        valid = np.all(np.isfinite(feats), axis=1)
+        labels = cls.ravel()
+        train = np.flatnonzero(opt.ravel() & valid)
+        present = [c for c in (1, 2, 3) if (labels[train] == c).sum() >= 50]
+        if len(present) >= 2:
+            rng = np.random.default_rng(1)
+            per_class = sc["rf_samples"] // 3
+            pick = np.concatenate([rng.choice(train[labels[train] == c],
+                                              size=min(per_class, int((labels[train] == c).sum())), replace=False)
+                                   for c in present])
+            rng.shuffle(pick)
+            cut = int(0.7 * pick.size)
+            tr, te = pick[:cut], pick[cut:]
+            rf = RandomForestClassifier(n_estimators=200, max_depth=14, min_samples_leaf=5, n_jobs=n_workers(),
+                                        class_weight="balanced", random_state=0)
+            rf.fit(feats[tr], labels[tr].astype(int))
+            pred_te = rf.predict(feats[te])
+            info["radar_class_model"] = dict(
+                holdout_accuracy=float((pred_te == labels[te].astype(int)).mean()),
+                kappa=float(cohen_kappa_score(labels[te].astype(int), pred_te)),
+                confusion=confusion_matrix(labels[te].astype(int), pred_te, labels=list(rf.classes_)).tolist(),
+                classes=[CLASSES[int(c)] for c in rf.classes_], n_train=int(tr.size),
+                feature_importance=dict(zip(["dHV", "dHH", "dHV-dHH", "HV_pre", "HH_pre"],
+                                            rf.feature_importances_.round(3).tolist())))
+            gi = np.flatnonzero(gap.ravel() & valid)
+            if gi.size:
+                p = rf.predict_proba(feats[gi])
+                sev.ravel()[gi] = np.asarray(rf.classes_)[p.argmax(axis=1)]
+                prob.ravel()[gi] = p.max(axis=1)
+            rest = gap & ~valid.reshape(grid.shape)
+            LOG.info("Radar class model: accuracy %.2f, kappa %.2f (holdout n=%d)",
+                     info["radar_class_model"]["holdout_accuracy"], info["radar_class_model"]["kappa"], te.size)
+        else:
+            rest = gap
+        sev[rest] = radar_class(dhv_s)[rest]
+        info["burned_ha_class_from"] = dict(dnbr=float(opt.sum() * px_ha), radar=float(gap.sum() * px_ha))
+    metrics["severity"] = info
 
     write_raster(path(cfg, "work", "severity", "class.tif"), np.nan_to_num(sev, nan=255).astype("uint8"), grid,
                  nodata=255, dtype="uint8", desc="0 unburned, 1 low, 2 moderate, 3 high")
     write_raster(path(cfg, "work", "severity", "prob.tif"), prob, grid)
-    px_ha = grid.res ** 2 / 1e4
     metrics["burned_ha"] = {CLASSES[c]: float((sev == c).sum() * px_ha) for c in range(1, 4)}
     write_json(path(cfg, "work", "severity", "metrics.json"), metrics, indent=1)
     LOG.info("Burned area (ha): %s", {k: round(v) for k, v in metrics["burned_ha"].items()})
