@@ -45,7 +45,8 @@ sentinel2:
   stac_url: https://earth-search.aws.element84.com/v1
   collection: sentinel-2-l2a
   max_cloud: 40
-  max_items_per_period: 6
+  max_items_per_period: 10   # scenes per period, chosen so the whole AOI is covered (many are partial swaths)
+  min_obs: 3                 # aim to see every part of the AOI this many times
   assets: [nir08, swir22, scl]
 
 downloads:
@@ -124,6 +125,7 @@ groundwater:
   aquifer_rating: 5       # ASSUMPTION unless GLHYMPS permeability is provided
 
 towns:
+  debris_radius_m: 5000     # debris-flow rating looks only at channels this close to the town or reservoir. ASSUMPTION
   snap_radius_m: 300        # a town is snapped to the largest stream within this distance ...
   max_snap_m: 1500          # ... widening up to this distance until it drains at least:
   min_catchment_km2: 1.0

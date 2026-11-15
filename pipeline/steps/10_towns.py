@@ -110,6 +110,7 @@ def main():
     d = cfg["dates"]
     pre_db = {k: db(period_mean(cfg, rr, "HV", d["pre_start"], d["fire_start"])[0]) for k, rr in by_pass(rows).items()}
 
+    rr, cc = np.ogrid[0:grid.height, 0:grid.width]
     rng = np.random.default_rng(cfg["ash"].get("seed", 42))
     lv = tc["levels"]
     out, polys = [], []
@@ -134,6 +135,8 @@ def main():
             m = rasterize([(t["geom"], 1)], out_shape=grid.shape, transform=grid.transform, fill=0, dtype="uint8") > 0
             if not m.any():
                 continue
+            from scipy.ndimage import distance_transform_edt
+            near = distance_transform_edt(~m) * grid.res <= tc.get("debris_radius_m", 5000)
             a = np.where(m, area, -1)
             r, c = np.unravel_index(np.nanargmax(a), a.shape)
             x, y = grid.xy(r, c)
@@ -149,8 +152,10 @@ def main():
         draws = ash_monte_carlo(agb_by, ha_by, cfg["ash"], rng=rng)
         ash = pctl(draws)
         ash_del = pctl(draws * float(sdr(a_km2)))
-        pm = p_ref[mask]
-        tm = trig[mask]
+        if t["kind"] == "town":   # only channels close enough to reach the town
+            near = (rr - r) ** 2 + (cc - c) ** 2 <= (tc.get("debris_radius_m", 5000) / grid.res) ** 2
+        pm = p_ref[mask & near]
+        tm = trig[mask & near]
         p_max = float(np.nanmax(pm)) if np.isfinite(pm).any() else None
         t_min = float(np.nanmin(tm)) if np.isfinite(tm).any() else None
         # groundwater: best water point near the town
@@ -178,8 +183,9 @@ def main():
                     continue
                 hv = db(read_raster(path(cfg, "work", "nisar", rr_["HV"])))
                 dv = (hv - pre_db[rr_["key"]])[bm]
-                if np.isfinite(dv).mean() > 0.5:
-                    series.append(dict(date=rr_["date"], pass_id=rr_["key"], dhv_db=round(float(np.nanmedian(dv)), 2)))
+                med = float(np.nanmedian(dv)) if np.isfinite(dv).mean() > 0.5 else np.nan
+                if np.isfinite(med) and abs(med) < 12:      # beyond 12 dB is a corrupt acquisition, not vegetation
+                    series.append(dict(date=rr_["date"], pass_id=rr_["key"], dhv_db=round(med, 2)))
         runoff_lv = worst(level(modhigh, lv["runoff_modhigh_share"]), level(ash_del["p50"], lv["runoff_ash_t"]))
         rec = dict(
             id=slug(t["name"]), name=t["name"], kind=t["kind"], lon=round(t["lon"], 5), lat=round(t["lat"], 5),

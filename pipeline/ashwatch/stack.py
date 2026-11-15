@@ -29,13 +29,15 @@ def by_pass(rows):
 
 
 def period_mean(cfg, rows, pol, d0, d1):
-    """Mean linear power over dates d0 <= date < d1 (None if no dates). Returns (array, n_dates)."""
+    """Typical linear power (median; mean below 3 dates) over dates d0 <= date < d1 (None if no dates). Returns (array, n_dates)."""
     sel = [r for r in rows if d0 <= r["date"] < d1 and r.get(pol)]
     if not sel:
         return None, 0
     arrs = [read_raster(path(cfg, "work", "nisar", r[pol])) for r in sel]
     with np.errstate(invalid="ignore"):
-        return np.nanmean(np.stack(arrs), axis=0), len(sel)
+        # median from 3 dates on: one corrupt or rain-soaked acquisition must not shift the period value
+        st = np.stack(arrs)
+        return (np.nanmedian(st, axis=0) if len(sel) >= 3 else np.nanmean(st, axis=0)), len(sel)
 
 
 def change_db(cfg, rows, pol, pre, post, normalize=False):
