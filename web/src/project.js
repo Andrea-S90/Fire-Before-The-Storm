@@ -1,5 +1,6 @@
 // Project facts shown in the "About" section. They mirror the fields of the Space Apps project page,
 // so the page and the site say the same thing. Leave a link as null until it exists: it is then not shown.
+// README.md repeats them under "About": update it in the same commit.
 export const project = {
   name: 'Ash Watch',
   team: 'Fire Before the Storm (Barcelona local event)',

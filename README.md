@@ -7,7 +7,7 @@ water could be polluted, by which pathway, and how confident that estimate is. I
 L-band radar, which measures the forest before the fire, the burn through smoke, and the regrowth afterwards.
 
 Project for the [NASA Space Apps Challenge 2026](https://www.spaceappschallenge.org/2026/), challenge
-*Dancing with the SARs*. Team: Andrea Serio and Masha Golikova. Demo case: the Burgohondo fire in Ávila,
+*Dancing with the SARs*. Team: Andrea Serio and Maria Golikova. Demo case: the Burgohondo fire in Ávila,
 Spain (July 2026) and the ash-laden runoff that followed the first autumn rain in October.
 
 ![Fire Before the Storm](media/Lockup%20%C2%B7%20drop%20in%20the%20flame.png)
@@ -86,13 +86,66 @@ bash tests/run_synthetic.sh /tmp/aw_test
 - Groundwater and airborne ash have no local measurements behind them and are labelled screening and
   indicative.
 
-## Data and credits
+## About
 
-NASA-ISRO NISAR L2 GCOV (ASF DAAC) · NASA GPM IMERG · Copernicus Sentinel-2 L2A · Copernicus DEM GLO-30 ·
-ESA CCI Biomass · ISRIC SoilGrids · ERA5 (Copernicus C3S) · OpenStreetMap contributors · Staley et al. (2017)
-M1 debris-flow model (USGS). Basemap: OpenFreeMap, OpenMapTiles, OpenStreetMap contributors.
+The same facts as the About section at the bottom of the site, under the headings of the Space Apps project
+page. The site reads them from [web/src/project.js](web/src/project.js): change both together.
 
-Code written with heavy use of Claude Code; commits carry a `Co-Authored-By` line where it applies.
+**Ash Watch** · Fire Before the Storm (Barcelona local event): Andrea Serio and Maria Golikova · Challenge:
+*Dancing with the SARs*
+
+### Links
+
+- Project demo: to come
+- Live site: to come
+- [Source code](https://github.com/Andrea-S90/Fire-Before-The-Storm)
+
+### NASA data
+
+- [NISAR L2 GCOV (NASA-ISRO), L-band HH and HV backscatter, from the ASF DAAC](https://nisar-docs.asf.alaska.edu/products-overview/)
+- [GPM IMERG Late Run V07, half-hourly rainfall, for the October hindcast](https://gpm.nasa.gov/data/imerg)
+- [NASA Earthdata Login and Search, used to find and download both](https://www.earthdata.nasa.gov/)
+
+### Space agency partner data and other sources
+
+- [ISRO: NISAR is a joint NASA-ISRO mission](https://www.isro.gov.in/NISARSatellite.html)
+- [ESA / Copernicus Sentinel-2 L2A, burn severity (dNBR), via the Earth Search STAC catalogue](https://earth-search.aws.element84.com/v1)
+- [ESA CCI Biomass, above-ground biomass used to calibrate the fuel estimate](https://climate.esa.int/en/projects/biomass/)
+- [Copernicus DEM GLO-30, terrain and flow routing](https://registry.opendata.aws/copernicus-dem/)
+- [ERA5 hourly wind (Copernicus Climate Change Service)](https://cds.climate.copernicus.eu/)
+- [ISRIC SoilGrids, soil texture and organic carbon for erodibility](https://soilgrids.org/)
+- [OpenStreetMap contributors: towns, reservoirs, wells and springs](https://www.openstreetmap.org/copyright)
+
+### References and tools
+
+- [Staley et al. (2017), the M1 post-fire debris-flow likelihood model (USGS)](https://doi.org/10.1016/j.geomorph.2016.10.019)
+- [Yu and Saatchi (2016), sensitivity of L-band radar to forest biomass](https://mdpi.com/2072-4292/8/6/522)
+- [Quigley et al. (2019), ash produced per unit of fuel consumed](https://link.springer.com/doi/10.1186/s42408-018-0015-7)
+- [Reuters via KFGO (7 Oct 2026), the report of the contaminated water supply](https://kfgo.com/2026/10/07/wildfire-ash-turns-spanish-mountain-river-black-contaminating-water-supply/)
+- [El Debate (28 Jul 2026), Casavieja without power or drinking water during the fire](https://www.eldebate.com/espana/castilla-y-leon/20260728/casavieja-pueblo-abulense-sobrevive-escenario-guerra-luz-agua_444145.html)
+- [Key and Benson (2006), the Normalized Burn Ratio and its severity classes (USDA Forest Service, FIREMON)](https://research.fs.usda.gov/treesearch/24066)
+- [MapLibre GL JS](https://maplibre.org/)
+- [OpenFreeMap basemap (OpenMapTiles, OpenStreetMap)](https://openfreemap.org/)
+
+### Use of AI
+
+The pipeline code, the site code and the documentation were written with Claude Code (Anthropic), directed and
+reviewed by the team; commits made that way carry a Co-Authored-By line. The idea, the choice of methods and
+the interpretation are ours.
+
+### Team
+
+- [Andrea Serio](https://www.linkedin.com/in/andrea--serio) (LinkedIn)
+- [Maria Golikova](https://www.linkedin.com/in/maria-golikova-bi/) (LinkedIn)
+
+### Acknowledgements
+
+- [NASA International Space Apps Challenge](https://www.spaceappschallenge.org/), funded by NASA's Science
+  Mission Directorate, for the challenge and the data
+- [42 Barcelona](https://www.42barcelona.com/) (Fundación Telefónica), for hosting the Barcelona local event at
+  its campus in the Parc Tecnològic
+- [The Barcelona local event](https://www.spaceappschallenge.org/2026/local-events/barcelona/) organisers and
+  mentors
 
 ## License
 
