@@ -53,7 +53,11 @@ function vectorLegend(group, chapter, rain) {
     case 'towns':
       return <Swatches key={group} title="Dots: towns and reservoirs, by overall risk" shape="dot"
         items={['high', 'medium', 'low'].map((l) => [l, LEVEL_COLOR[l]])}
-        note="The overall level is the worse of surface runoff and debris flow." />
+        note="The overall level is the worse of surface runoff and debris flow. Click a dot for its numbers." />
+    case 'reported':
+      return <Swatches key={group} title="Yellow area: municipalities named in the news" shape="box"
+        items={[['Casavieja, Piedralaves', 'rgba(242, 183, 5, 0.5)']]}
+        note="Boundaries © OpenStreetMap contributors." />
     case 'burned':
       return <Swatches key={group} title="Dashed line: edge of the burned area" shape="dash" items={[['burn outline', '#3b2a20']]} />
     case 'streams':

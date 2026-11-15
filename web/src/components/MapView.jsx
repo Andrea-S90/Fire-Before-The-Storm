@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react'
 import maplibregl from 'maplibre-gl'
-import { dataUrl, LEVEL_COLOR } from '../data.js'
+import { dataUrl, LEVEL_COLOR, fmt } from '../data.js'
+// Reference outlines, not pipeline data: the municipalities the news reports name (OpenStreetMap, ODbL).
+import municipalitiesUrl from '../assets/municipalities.geojson?url'
 
 const STREAM_WIDTH = ['interpolate', ['linear'], ['coalesce', ['get', 'area_km2'], 0], 0, 0.4, 5, 1.2, 100, 3]
 // Streams have two looks. Normally: debris-flow likelihood at 24 mm/h (segments outside the model's size range
@@ -24,7 +26,10 @@ const VECTORS = {
   catchments: ['catchment-fill', 'catchment-line'],
   water: ['water-circle'],
   towns: ['towns-circle', 'towns-label'],
+  reported: ['reported-fill', 'reported-line'],
 }
+
+export const REPORTED = '#f2b705'
 
 function addLayers(map, layers) {
   for (const l of layers) {
@@ -38,6 +43,11 @@ function addLayers(map, layers) {
   src('catchments', 'catchments.geojson')
   src('water', 'water_points.geojson')
   src('towns', 'towns.geojson')
+  map.addSource('reported', { type: 'geojson', data: municipalitiesUrl })
+  map.addLayer({ id: 'reported-fill', type: 'fill', source: 'reported',
+    paint: { 'fill-color': REPORTED, 'fill-opacity': 0.3 } })
+  map.addLayer({ id: 'reported-line', type: 'line', source: 'reported',
+    paint: { 'line-color': '#1c1917', 'line-width': 1.6 } })
   map.addLayer({ id: 'catchment-fill', type: 'fill', source: 'catchments',
     paint: { 'fill-color': '#1d4e89', 'fill-opacity': 0.18 } })
   map.addLayer({ id: 'catchment-line', type: 'line', source: 'catchments',
@@ -57,10 +67,12 @@ function addLayers(map, layers) {
         0, '#9ecae1', 0.25, '#fdae61', 0.5, '#b2182b'] } })
   map.addLayer({ id: 'towns-circle', type: 'circle', source: 'towns',
     paint: { 'circle-radius': 6, 'circle-color': levelColor, 'circle-stroke-width': 1.5, 'circle-stroke-color': '#fff' } })
-  map.addLayer({ id: 'towns-label', type: 'symbol', source: 'towns', minzoom: 9.5,
-    layout: { 'text-field': ['get', 'name'], 'text-size': 11, 'text-offset': [0, 1.1], 'text-anchor': 'top',
-      'text-font': ['Noto Sans Regular'] },
-    paint: { 'text-halo-color': '#fff', 'text-halo-width': 1.2, 'text-color': '#222' } })
+  // every dot gets its name; where names collide, the riskier town keeps its label
+  map.addLayer({ id: 'towns-label', type: 'symbol', source: 'towns',
+    layout: { 'text-field': ['get', 'name'], 'text-size': 11, 'text-offset': [0, 0.9], 'text-anchor': 'top',
+      'text-font': ['Noto Sans Regular'], 'text-padding': 1,
+      'symbol-sort-key': ['match', ['get', 'overall'], 'high', 0, 'medium', 1, 2] },
+    paint: { 'text-halo-color': '#fff', 'text-halo-width': 1.4, 'text-color': '#222' } })
 }
 
 function applyRain(map, streams, rain) {
@@ -81,13 +93,37 @@ function applyChapter(map, layers, chapter, selectedId) {
   // only the selected town's catchment, so the map stays readable
   map.setFilter('catchment-fill', ['==', ['get', 'id'], selectedId])
   map.setFilter('catchment-line', ['==', ['get', 'id'], selectedId])
-  map.setPaintProperty('towns-circle', 'circle-radius', ['case', ['==', ['get', 'id'], selectedId], 10, 6])
+  const sel = ['==', ['get', 'id'], selectedId]
+  map.setPaintProperty('towns-circle', 'circle-radius', ['case', sel, 10, 6])
+  map.setPaintProperty('towns-circle', 'circle-stroke-color', ['case', sel, '#1c1917', '#fff'])
+  map.setPaintProperty('towns-circle', 'circle-stroke-width', ['case', sel, 2.5, 1.5])
+  map.setLayoutProperty('towns-label', 'text-size', ['case', sel, 13, 11])
 }
 
-export default function MapView({ data, chapter, selectedId, onSelectTown, rain }) {
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+const PATH_LABEL = { runoff: 'Surface runoff', debris_flow: 'Debris flow', groundwater: 'Groundwater', airborne: 'Airborne ash' }
+// The data behind a dot's colour: overall level, the four pathways (overall = worse of runoff and debris flow), ash
+function popupHtml(t) {
+  const dot = (level) => `<i class="pp-dot" style="background:${LEVEL_COLOR[level] ?? LEVEL_COLOR.unknown}"></i>`
+  const rows = Object.entries(PATH_LABEL).map(([k, label]) => {
+    const p = t.pathways[k]
+    const drives = (k === 'runoff' || k === 'debris_flow') && p.level === t.overall ? 'pp-drives' : ''
+    return `<li class="${drives}">${dot(p.level)}<span>${label}</span><b>${esc(p.level)}</b><small>${esc(p.confidence)}</small></li>`
+  }).join('')
+  return `<div class="pp">
+    <header><strong>${esc(t.name)}</strong><span class="pill" style="background:${LEVEL_COLOR[t.overall]}">${esc(t.overall)}</span></header>
+    <p class="muted">${t.kind === 'reservoir' ? 'Reservoir' : `Population ${fmt(t.population)}`} · ${fmt(t.upstream_burned_pct, 1)}% burned upstream</p>
+    <ul>${rows}</ul>
+    <p class="pp-ash">Ash upstream <b>${fmt(t.ash_t.p50)} t</b> <small>(range ${fmt(t.ash_t.p10)} to ${fmt(t.ash_t.p90)})</small></p>
+    <p class="muted pp-note">Bold: the pathway that sets the dot's colour (the worse of surface runoff and debris flow).</p>
+  </div>`
+}
+
+export default function MapView({ data, chapter, selectedId, onSelectTown, rain, onMap }) {
   const el = useRef(null)
   const mapRef = useRef(null)
   const ready = useRef(false)
+  const popupRef = useRef(null)
   const streams = useRef([])   // [stream id, trigger mm/h or Infinity] for every segment
   const latest = useRef({ chapter, selectedId, rain })
   latest.current = { chapter, selectedId, rain }
@@ -99,6 +135,9 @@ export default function MapView({ data, chapter, selectedId, onSelectTown, rain 
       cooperativeGestures: true,
     })
     mapRef.current = map
+    onMap?.(map)
+    const popup = new maplibregl.Popup({ maxWidth: '280px', offset: 12, className: 'town-popup' })
+    popupRef.current = popup
     if (import.meta.env.DEV) window.__map = map
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right')
     map.on('load', () => {
@@ -110,7 +149,12 @@ export default function MapView({ data, chapter, selectedId, onSelectTown, rain 
         applyRain(map, streams.current, latest.current.rain)
       })
     })
-    map.on('click', 'towns-circle', (e) => onSelectTown(e.features[0].properties.id))
+    map.on('click', 'towns-circle', (e) => {
+      const f = e.features[0]
+      const t = data.towns.find((x) => x.id === f.properties.id)
+      onSelectTown(f.properties.id)
+      if (t) popup.setLngLat(f.geometry.coordinates).setHTML(popupHtml(t)).addTo(map)
+    })
     map.on('mouseenter', 'towns-circle', () => { map.getCanvas().style.cursor = 'pointer' })
     map.on('mouseleave', 'towns-circle', () => { map.getCanvas().style.cursor = '' })
     return () => { ready.current = false; map.remove() }
@@ -131,7 +175,15 @@ export default function MapView({ data, chapter, selectedId, onSelectTown, rain 
 
   useEffect(() => {
     mapRef.current?.flyTo({ ...chapter.view, duration: 1200 })
+    if (!chapter.vectors.includes('towns')) popupRef.current?.remove()
   }, [chapter])
+
+  // the town picker (towns chapter) moves an open popup to the newly selected town
+  useEffect(() => {
+    const popup = popupRef.current
+    const t = data.towns.find((x) => x.id === selectedId)
+    if (popup?.isOpen() && t) popup.setLngLat([t.lon, t.lat]).setHTML(popupHtml(t))
+  }, [selectedId, data.towns])
 
   return <div ref={el} className="map" />
 }
