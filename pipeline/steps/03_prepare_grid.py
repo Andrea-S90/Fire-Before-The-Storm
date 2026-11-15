@@ -16,7 +16,10 @@ from ashwatch.common import (LOG, cli, grid_from_config, load_config, mosaic_to_
                              setup_logging, to_grid, write_json, write_raster)
 from ashwatch.hydro import epic_k  # noqa: E402
 
-BAD_SCL = {0, 1, 3, 8, 9, 10, 11}   # no data, saturated, cloud shadow, clouds, cirrus, snow
+# no data, saturated, clouds, cirrus, snow. Cloud shadow (3) is NOT masked: Sen2Cor labels fresh burn scars as
+# shadow or dark area, which would remove dNBR exactly where it matters. Step 05 only accepts a dNBR burn where
+# the radar also shows a drop, so a real cloud shadow cannot create a burn on its own.
+BAD_SCL = {0, 1, 8, 9, 10, 11}
 
 
 def s2_composite(cfg, grid, period):

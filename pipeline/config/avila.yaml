@@ -67,6 +67,8 @@ severity:
   # median, 5x5 median filter) AND dNBR reaches the first break. Under cloud the radar decides alone. ASSUMPTION
   burn_dhv_db: -1.0
   min_burn_patch_ha: 5       # smaller isolated patches are treated as noise
+  burn_dhv_radar_only_db: -2.0   # stricter HV drop where there is no dNBR (cloud, outside the S2 subset). ASSUMPTION
+  min_hv_pre_db: -23.0           # darker than this before the fire = water or bare ground, never burned. ASSUMPTION
   # Classes from radar alone, where dNBR is missing and no model can be trained: HV change (dB) breaks. ASSUMPTION
   dhv_breaks_db: [-1.0, -2.5, -4.0]
   rf_samples: 40000

@@ -54,6 +54,9 @@ def main():
     else:
         LOG.warning("No dNBR: fire variable F from severity class midpoints (ASSUMPTION)")
         dnbr = np.array([50, 185, 465, 800], "float32")[np.clip(np.nan_to_num(sev).astype(int), 0, 3)]
+    # F is the fire's dNBR: zero outside the burn. Raw dNBR is also high over drying fields and is noise over
+    # water (a ratio of two near-zero reflectances), which made unburned catchments look dangerous.
+    dnbr = np.where(burned, np.clip(np.nan_to_num(dnbr), 0, 1500), 0).astype("float32")
     kf = read_raster(path(cfg, "work", "grid", "kf.tif"))
     kf = np.where(np.isfinite(kf), kf, np.nanmedian(kf))
 
