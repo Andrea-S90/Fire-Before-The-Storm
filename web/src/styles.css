@@ -95,6 +95,9 @@ footer { color: var(--muted); font-size: 0.75rem; padding: 0 0 70px; pointer-eve
 .hl-en { font-size: 0.8rem; color: var(--muted); }
 .explainer figcaption { font-size: 0.95rem; }
 .explainer .formula { margin: 6px 0 0; padding: 6px 10px; background: #f4f0e8; border-radius: 6px; font: 0.88rem/1.5 ui-monospace, Consolas, monospace; text-align: center; }
+.explainer .terms { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 8px 0 0; font-size: 0.85rem; }
+.explainer .terms dt { font: 600 0.85rem ui-monospace, Consolas, monospace; text-align: right; }
+.explainer .terms dd { margin: 0; }
 .explainer .credit { margin: 6px 0 0; font-size: 0.68rem; color: var(--muted); font-style: italic; }
 
 /* lines from the news cards to the towns they name */
