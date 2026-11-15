@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
-// Leader lines from each news card (Headlines.jsx, matched by data-news) to the towns it names on the map.
+// Leader lines from a news card (Headlines.jsx, matched by data-news) to the towns it names on the map,
+// shown while that card is hovered or focused.
 // Drawn in screen space and re-measured every frame while the chapter is active, so they follow scroll,
 // camera moves and resizes.
 export default function NewsLinks({ map, items, towns, active }) {
@@ -13,7 +14,8 @@ export default function NewsLinks({ map, items, towns, active }) {
       const next = []
       for (const n of items) {
         const card = document.querySelector(`[data-news="${CSS.escape(n.url)}"]`)
-        if (!card) continue
+        // only for the card under the pointer (or focused with the keyboard)
+        if (!card || !card.matches(':hover, :focus-visible')) continue
         const r = card.getBoundingClientRect()
         for (const id of n.towns ?? []) {
           const t = towns.find((x) => x.id === id)
