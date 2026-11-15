@@ -1,11 +1,13 @@
 // The story, as data. Edit text and map state here; no component changes needed.
 //   overlays:  ids from layers.json shown as rasters (their colour scale appears in the legend)
-//   vectors:   burned | streams | catchments | water | towns (each has a legend entry)
+//   vectors:   burned | streams | catchments | water | towns | reported (each has a legend entry);
+//              reported = outlines of the municipalities the news items name
 //   panel:     towns | hindcast | wind | rain | credits | about
 //   view:      MapLibre camera
 //   time:      periods highlighted on the timeline, as pairs of keys of meta.json "dates"
 //   timeLabel: what the map shows, in words, next to the timeline
-//   news:      news reports shown as text cards (outlet, date, headline, link; never their photos)
+//   news:      news reports as text cards (outlet, date, headline, link; never their photos or screenshots)
+//              and the towns each names (towns: ids; a line is drawn from the card to each)
 //   explainer: 'sentinel2' | 'nisar', a plain-language card on how that satellite sees the fire
 const AVILA = { center: [-4.66, 40.38], zoom: 9.6 }
 const PRE = ['pre_start', 'fire_start']
@@ -16,16 +18,18 @@ const STORM = ['hindcast_start', 'hindcast_end']
 export const chapters = [
   { id: 'intro', title: 'The fire is out. The danger isn’t.',
     body: 'In early October 2026, the first autumn rain washed ash from the Burgohondo fire into the rivers of Ávila. Tap water in Casavieja and Piedralaves was declared unfit to drink.',
-    view: { center: [-4.66, 40.38], zoom: 8.6 }, overlays: [], vectors: ['towns'],
+    view: { center: [-4.66, 40.38], zoom: 8.6 }, overlays: [], vectors: ['reported', 'towns'],
     time: [STORM], timeLabel: 'towns rated after the fire; the rain came in early October',
     news: [
       { outlet: 'El Debate', date: '28 July 2026', lang: 'es',
         headline: 'Casavieja, el pueblo abulense que sobrevive a un escenario de guerra sin luz ni agua',
         english: 'During the fire: Casavieja without power or drinking water',
+        towns: ['casavieja'],
         url: 'https://www.eldebate.com/espana/castilla-y-leon/20260728/casavieja-pueblo-abulense-sobrevive-escenario-guerra-luz-agua_444145.html' },
       { outlet: 'Reuters via Devdiscourse', date: '7 October 2026', lang: 'en',
         headline: 'Wildfire ash turns Spanish mountain river black, contaminating water supply',
         english: 'After the first rain: tap water in Piedralaves declared unfit for consumption',
+        towns: ['casavieja', 'piedralaves'],
         url: 'https://www.devdiscourse.com/article/international/3988408-wildfire-ash-turns-spanish-mountain-river-black-contaminating-water-supply' },
     ] },
   { id: 'fire', title: 'The fire',

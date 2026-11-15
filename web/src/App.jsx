@@ -10,6 +10,7 @@ import Legend from './components/Legend.jsx'
 import Timeline from './components/Timeline.jsx'
 import Headlines from './components/Headlines.jsx'
 import Explainer from './components/Explainer.jsx'
+import NewsLinks from './components/NewsLinks.jsx'
 
 export default function App() {
   const [data, setData] = useState(null)
@@ -17,6 +18,7 @@ export default function App() {
   const [active, setActive] = useState(0)
   const [townId, setTownId] = useState(null)
   const [rain, setRain] = useState(24)
+  const [map, setMap] = useState(null)
   const stepRefs = useRef([])
 
   useEffect(() => { loadData().then(setData, (e) => setError(String(e))) }, [])
@@ -46,7 +48,8 @@ export default function App() {
   return (
     <>
       <MapView data={data} chapter={chapter} selectedId={town.id} onSelectTown={setTownId}
-        rain={chapter.panel === 'rain' ? rain : null} />
+        rain={chapter.panel === 'rain' ? rain : null} onMap={setMap} />
+      <NewsLinks map={map} items={chapter.news} towns={data.towns} active={Boolean(chapter.news)} />
       <Timeline meta={data.meta} passDates={data.passDates} chapter={chapter} />
       {import.meta.env.DEV && data.warnings.length > 0 && (
         <div className="dev-banner">
