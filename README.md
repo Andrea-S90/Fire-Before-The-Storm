@@ -2,6 +2,8 @@
 
 **The fire is out. The danger isn't.**
 
+See the live story site: **[andrea-s90.github.io/Fire-Before-The-Storm](https://andrea-s90.github.io/Fire-Before-The-Storm/)**.
+
 > We're Andrea, a mathematician and student at 42, and Maria, a BI analyst and bioinformatician. Last August
 > we travelled to central Spain to watch the eclipse and ended up watching wildfires instead. By October those
 > same towns were back in the news, this time because autumn rain was washing ash into their drinking water.
@@ -32,6 +34,16 @@ rain, OpenStreetMap                                          (the data contract)
 | Debris flow | Can one storm send mud and ash into our intakes? | Medium: model calibrated in the western US |
 | Groundwater | Should we test our wells and springs? | Screening only |
 | Airborne ash | Did ash fall on our reservoir, and can dry ash still blow in? | Indicative only |
+
+### How NISAR sees a forest
+
+![How NISAR sees a forest: HV echo from the canopy before the fire, mostly HH from bare ground after it](web/src/assets/nisar-explainer.jpg)
+
+*AI-generated illustration (schematic, not to scale).*
+
+NISAR sends 24 cm L-band microwaves, polarized horizontally (H), through smoke and cloud. Branches and trunks
+bounce them around and turn part of the echo vertical: a strong HV signal. When the canopy burns, HV drops.
+Bare ground echoes mostly H (HH), which rises on wet soil: HV down means burned, HH up alone means rain.
 
 Methods, one paragraph each: [pipeline/README.md](pipeline/README.md). Full plan:
 [Fire Before the Storm — Ash Watch build plan.md](Fire%20Before%20the%20Storm%20%E2%80%94%20Ash%20Watch%20build%20plan.md).
