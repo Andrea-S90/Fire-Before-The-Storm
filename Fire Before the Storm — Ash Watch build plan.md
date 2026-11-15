@@ -194,10 +194,14 @@ Be honest in the pitch: one fire is a case study, not proof. IMERG's 10 km grid 
 
 | Seconds | On screen | Voice |
 | --- | --- | --- |
-| 0–5 | Logo, names | "We're Fire Before the Storm." |
+| 0–5 | Logo, our two names, "NASA Space Apps 2026 · Dancing with the SARs" | "We're Andrea and Masha, team Fire Before the Storm, taking on Dancing with the SARs." |
 | 5–12 | Tiétar valley, October 2026 | "After Ávila burned, the first rain poisoned the tap water." |
 | 12–22 | Story site: NISAR before/after, ash layer, a town card | "NASA's NISAR radar sees the fuel, the burn and the regrowth. Ash Watch turns that into a warning for every town downstream." |
-| 22–30 | Hindcast, then a world map | "It would have flagged Casavieja before the October rain. Any fire, anywhere." (first line only if the hindcast holds) |
+| 22–30 | Town cards for Casavieja and Piedralaves, then a world map | "With data from before the rain, it rates Casavieja and Piedralaves high risk. Any fire, anywhere." |
+
+The guide's outline for a video is: names and team, the challenge, project title and tagline, how it works with NASA data, the future. The challenge name must be said or shown in the first five seconds.
+
+What the 12:25 export supports, and what it does not: Casavieja and Piedralaves are both rated high from data that ends on 25 September, before the rain. The satellite rain (IMERG) never reaches any town's debris-flow trigger, so do not say the tool predicted the storm or that a trigger was exceeded.
 
 **Checklist**
 
