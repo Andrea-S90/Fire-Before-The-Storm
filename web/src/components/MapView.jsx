@@ -5,6 +5,15 @@ import { dataUrl, LEVEL_COLOR, fmt } from '../data.js'
 import municipalitiesUrl from '../assets/municipalities.geojson?url'
 
 const STREAM_WIDTH = ['interpolate', ['linear'], ['coalesce', ['get', 'area_km2'], 0], 0, 0.4, 5, 1.2, 100, 3]
+// Streams have two looks. Normally: debris-flow likelihood at 24 mm/h (segments outside the model's size range
+// have no value). With the rain dial: red where the trigger is at or below the chosen intensity, grey otherwise;
+// those red segments are small headwater channels, so they are drawn thicker and on top (line-sort-key).
+// The switch is a feature state per segment, never a new expression: changing a data-driven expression makes
+// MapLibre re-tile the whole source, which takes seconds and made the dial lag.
+const PASSED = ['boolean', ['feature-state', 'passed'], false]
+const STREAM_COLOR = ['case', PASSED, '#b2182b',
+  ['boolean', ['feature-state', 'dial'], false], '#9fb8c8',
+  ['interpolate', ['linear'], ['coalesce', ['get', 'p24'], 0], 0, '#4d9ac4', 0.4, '#fdae61', 0.7, '#b2182b']]
 
 const BASEMAP = 'https://tiles.openfreemap.org/styles/positron'
 const levelColor = ['match', ['get', 'overall'], 'high', LEVEL_COLOR.high, 'medium', LEVEL_COLOR.medium,
@@ -28,9 +37,9 @@ function addLayers(map, layers) {
     map.addLayer({ id: `ov-${l.id}`, type: 'raster', source: `ov-${l.id}`,
       paint: { 'raster-opacity': 0, 'raster-opacity-transition': { duration: 600 }, 'raster-fade-duration': 0 } })
   }
-  const src = (id, file) => map.addSource(id, { type: 'geojson', data: dataUrl(file) })
+  const src = (id, file, extra) => map.addSource(id, { type: 'geojson', data: dataUrl(file), ...extra })
   src('burned', 'burned_area.geojson')
-  src('streams', 'streams.geojson')
+  src('streams', 'streams.geojson', { promoteId: 'id' })   // ids for the rain dial's feature state
   src('catchments', 'catchments.geojson')
   src('water', 'water_points.geojson')
   src('towns', 'towns.geojson')
@@ -44,9 +53,11 @@ function addLayers(map, layers) {
   map.addLayer({ id: 'catchment-line', type: 'line', source: 'catchments',
     paint: { 'line-color': '#1d4e89', 'line-width': 1.5 } })
   map.addLayer({ id: 'streams-line', type: 'line', source: 'streams',
+    // lowest trigger drawn last, so the segments the rain dial turns red are always on top
+    layout: { 'line-sort-key': ['-', 1000, ['coalesce', ['get', 'trigger_mmh'], 1000]] },
     paint: {
-      'line-color': '#4d9ac4',   // set per chapter in applyChapter
-      'line-width': STREAM_WIDTH,   // set per chapter in applyChapter
+      'line-color': STREAM_COLOR,
+      'line-width': ['case', PASSED, 2.6, STREAM_WIDTH],
     } })
   map.addLayer({ id: 'burned-line', type: 'line', source: 'burned',
     paint: { 'line-color': '#3b2a20', 'line-width': 1.2, 'line-dasharray': [2, 1.5] } })
@@ -64,20 +75,13 @@ function addLayers(map, layers) {
     paint: { 'text-halo-color': '#fff', 'text-halo-width': 1.4, 'text-color': '#222' } })
 }
 
-// debris-flow likelihood at 24 mm/h; segments outside the model's size range have no value
-const STREAM_BY_LIKELIHOOD = ['interpolate', ['linear'], ['coalesce', ['get', 'p24'], 0],
-  0, '#4d9ac4', 0.4, '#fdae61', 0.7, '#b2182b']
-// rain dial: red where the trigger is at or below the chosen intensity. Those are small headwater channels, so
-// they are drawn thicker and on top, or they would be invisible next to the rivers.
-const passed = (rain) =>
-  ['all', ['has', 'trigger_mmh'], ['!=', ['get', 'trigger_mmh'], null], ['<=', ['get', 'trigger_mmh'], rain]]
-const streamByRain = (rain) => ['case', passed(rain), '#b2182b', '#9fb8c8']
-const widthByRain = (rain) => ['case', passed(rain), 2.6, STREAM_WIDTH]
+function applyRain(map, streams, rain) {
+  for (const [id, trigger] of streams) {
+    map.setFeatureState({ source: 'streams', id }, { dial: rain != null, passed: rain != null && trigger <= rain })
+  }
+}
 
-function applyChapter(map, layers, chapter, selectedId, rain) {
-  map.setPaintProperty('streams-line', 'line-color', rain == null ? STREAM_BY_LIKELIHOOD : streamByRain(rain))
-  map.setPaintProperty('streams-line', 'line-width', rain == null ? STREAM_WIDTH : widthByRain(rain))
-  map.setLayoutProperty('streams-line', 'line-sort-key', rain == null ? 0 : ['case', passed(rain), 1, 0])
+function applyChapter(map, layers, chapter, selectedId) {
   for (const l of layers) {
     map.setPaintProperty(`ov-${l.id}`, 'raster-opacity', chapter.overlays.includes(l.id) ? 0.85 : 0)
   }
@@ -120,6 +124,7 @@ export default function MapView({ data, chapter, selectedId, onSelectTown, rain,
   const mapRef = useRef(null)
   const ready = useRef(false)
   const popupRef = useRef(null)
+  const streams = useRef([])   // [stream id, trigger mm/h or Infinity] for every segment
   const latest = useRef({ chapter, selectedId, rain })
   latest.current = { chapter, selectedId, rain }
 
@@ -138,7 +143,11 @@ export default function MapView({ data, chapter, selectedId, onSelectTown, rain,
     map.on('load', () => {
       addLayers(map, data.layers)
       ready.current = true
-      applyChapter(map, data.layers, latest.current.chapter, latest.current.selectedId, latest.current.rain)
+      applyChapter(map, data.layers, latest.current.chapter, latest.current.selectedId)
+      map.getSource('streams').getData().then((fc) => {
+        streams.current = fc.features.map((f) => [f.properties.id, f.properties.trigger_mmh ?? Infinity])
+        applyRain(map, streams.current, latest.current.rain)
+      })
     })
     map.on('click', 'towns-circle', (e) => {
       const f = e.features[0]
@@ -156,8 +165,13 @@ export default function MapView({ data, chapter, selectedId, onSelectTown, rain,
   useEffect(() => {
     const map = mapRef.current
     if (!map || !ready.current) return
-    applyChapter(map, data.layers, chapter, selectedId, rain)
-  }, [chapter, selectedId, rain, data.layers])
+    applyChapter(map, data.layers, chapter, selectedId)
+  }, [chapter, selectedId, data.layers])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (map && ready.current) applyRain(map, streams.current, rain)
+  }, [rain])
 
   useEffect(() => {
     mapRef.current?.flyTo({ ...chapter.view, duration: 1200 })
