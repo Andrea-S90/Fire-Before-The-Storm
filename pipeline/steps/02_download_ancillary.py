@@ -214,6 +214,7 @@ def era5(cfg):
     for ym in sorted({(x.year, x.month) for x in days}):
         dest = path(cfg, "raw", "era5", f"era5_{ym[0]}{ym[1]:02d}.nc")
         if dest.exists():
+            unzip_era5(dest)     # a file from an earlier run may still be a zip
             continue
         req = {"product_type": ["reanalysis"],
                "variable": ["10m_u_component_of_wind", "10m_v_component_of_wind", "total_precipitation"],
@@ -223,6 +224,31 @@ def era5(cfg):
                "area": [n + 0.5, w - 0.5, s - 0.5, e + 0.5], "data_format": "netcdf", "download_format": "unarchived"}
         LOG.info("ERA5 %s-%02d", *ym)
         c.retrieve("reanalysis-era5-single-levels", req, str(dest))
+        unzip_era5(dest)
+
+
+def unzip_era5(dest: Path):
+    """The CDS sends a zip when a request mixes instantaneous (wind) and accumulated (rain) variables:
+    one netCDF per kind. Merge them into the single netCDF that step 08 reads. No-op for a real netCDF."""
+    import tempfile
+    import zipfile
+
+    import xarray as xr
+    if not zipfile.is_zipfile(dest):
+        return
+    with tempfile.TemporaryDirectory(dir=dest.parent) as tmp:
+        with zipfile.ZipFile(dest) as z:
+            members = [m for m in z.namelist() if m.endswith(".nc")]
+            z.extractall(tmp, members)
+        parts = [xr.open_dataset(Path(tmp) / m).load() for m in members]
+        for p in parts:
+            p.close()
+        drop = [v for v in ("expver", "number") if all(v in p.variables and v not in p.dims for p in parts)]
+        merged = xr.merge([p.drop_vars(drop) for p in parts], compat="override", join="outer")
+        out = Path(tmp) / "merged.nc"
+        merged.to_netcdf(out)
+        out.replace(dest)
+    LOG.info("  %s: merged %d netCDF files from the zip (%s)", dest.name, len(members), ", ".join(merged.data_vars))
 
 
 # --------------------------------------------------------------------------- IMERG
