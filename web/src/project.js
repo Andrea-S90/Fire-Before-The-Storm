@@ -1,8 +1,23 @@
 // Project facts shown in the "About" section. They mirror the fields of the Space Apps project page,
 // so the page and the site say the same thing. Leave a link as null until it exists: it is then not shown.
+// README.md repeats them under "About": update it in the same commit.
 export const project = {
   name: 'Ash Watch',
-  team: 'Fire Before the Storm: Andrea Serio and Masha Golikova (Barcelona local event)',
+  team: 'Fire Before the Storm (Barcelona local event)',
+  members: [
+    ['Andrea Serio', 'https://www.linkedin.com/in/andrea--serio'],
+    ['Maria Golikova', 'https://www.linkedin.com/in/maria-golikova-bi/'],
+  ],
+  // Checked against the 2026 Barcelona local event page:
+  // https://www.spaceappschallenge.org/2026/local-events/barcelona/
+  acknowledgements: [
+    ['NASA International Space Apps Challenge, funded by NASA\'s Science Mission Directorate, for the challenge and the data',
+      'https://www.spaceappschallenge.org/'],
+    ['42 Barcelona (Fundación Telefónica), for hosting the Barcelona local event at its campus in the Parc Tecnològic',
+      'https://www.42barcelona.com/'],
+    ['The Barcelona local event organisers and mentors',
+      'https://www.spaceappschallenge.org/2026/local-events/barcelona/'],
+  ],
   challenge: 'Dancing with the SARs',
   summary:
     'Ash Watch is a post-fire warning for drinking water. It uses NASA-ISRO NISAR L-band radar to measure the forest before a fire, the burn itself and the regrowth after it, then follows the ash downhill: for every town it shows how the water supply could be polluted, by which pathway, and how confident that estimate is. The demo is the Burgohondo fire in Ávila, Spain, in July 2026.',
