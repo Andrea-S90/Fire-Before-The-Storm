@@ -87,16 +87,19 @@ def main():
     px_ha = grid.res ** 2 / 1e4
     seen = np.isfinite(dhv)
     dhv_s = median_filter(np.nan_to_num(dhv, nan=0.0), size=5)        # 5 x 5 median against speckle
-    radar_burn = seen & (dhv_s <= gate_db)
+    # water and bare ground have no canopy to lose: HV too low before the fire -> never burned
+    seen_veg = seen & (hv_pre >= float(sc.get("min_hv_pre_db", -23.0)))
+    radar_burn = seen_veg & (dhv_s <= gate_db)
+    radar_burn_strict = seen_veg & (dhv_s <= float(sc.get("burn_dhv_radar_only_db", -2.0)))
     dnbr_p = path(cfg, "work", "grid", "dnbr.tif")
     dnbr = read_raster(dnbr_p) if dnbr_p.exists() else None
     if dnbr is not None:
         has_opt = np.isfinite(dnbr)
         opt_burn = has_opt & (dnbr >= sc["dnbr_breaks"][0])
-        burn = radar_burn & (opt_burn | ~has_opt)
+        burn = (radar_burn & opt_burn) | (radar_burn_strict & ~has_opt)   # radar alone needs a clearer drop
     else:
         has_opt = np.zeros(grid.shape, bool)
-        burn = radar_burn
+        burn = radar_burn_strict
     perim_p = path(cfg, "work", "grid", "perimeter.tif")
     if perim_p.exists():   # nothing is burned outside the official perimeter (+ ~500 m)
         per = binary_dilation(read_raster(perim_p) > 0, iterations=max(1, int(500 / grid.res)))
@@ -115,7 +118,8 @@ def main():
     prob = np.full(grid.shape, np.nan, "float32")
     info = dict(method="burned where NISAR HV drop and Sentinel-2 dNBR agree; class from dNBR, "
                        "random forest on NISAR features where dNBR is missing",
-                burn_dhv_db=gate_db, min_burn_patch_ha=sc.get("min_burn_patch_ha", 5),
+                burn_dhv_db=gate_db, burn_dhv_radar_only_db=sc.get("burn_dhv_radar_only_db", -2.0),
+                min_hv_pre_db=sc.get("min_hv_pre_db", -23.0), min_burn_patch_ha=sc.get("min_burn_patch_ha", 5),
                 perimeter_used=perim_p.exists())
     if dnbr is None:
         sev[burn] = radar_class(dhv_s)[burn]

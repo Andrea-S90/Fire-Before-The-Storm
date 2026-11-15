@@ -66,6 +66,34 @@ def dem(cfg):
 
 
 # --------------------------------------------------------------------------- Sentinel-2
+def pick_s2_items(items, bbox, max_items, min_obs):
+    """Choose scenes so that every part of the AOI is seen min_obs times, least cloudy first.
+
+    Many scenes are partial swaths: taking simply the N least cloudy ones can leave most of the AOI
+    without any image (it did: the six clearest July scenes covered only the eastern quarter).
+    """
+    from shapely import contains_xy
+    from shapely.geometry import shape
+    w, s, e, n = bbox
+    xs, ys = np.meshgrid(np.linspace(w, e, 25), np.linspace(s, n, 15))
+    xs, ys = xs.ravel(), ys.ravel()
+    cover = [contains_xy(shape(it.geometry), xs, ys) for it in items]
+    # least cloudy first (5 % steps), and among equally clear scenes the one covering more of the AOI
+    order = sorted(range(len(items)), key=lambda k: (items[k].properties.get("eo:cloud_cover", 100) // 5,
+                                                     -cover[k].sum()))
+    seen = np.zeros(xs.size, int)
+    picked = []
+    for k in order:
+        if len(picked) >= max_items or (seen >= min_obs).all():
+            break
+        if (cover[k] & (seen < min_obs)).any():
+            picked.append(k)
+            seen += cover[k]
+    LOG.info("  AOI coverage: %.0f%% seen at least once, %.0f%% at least %d times",
+             100 * (seen > 0).mean(), 100 * (seen >= min_obs).mean(), min_obs)
+    return [items[k] for k in picked]
+
+
 def s2(cfg):
     import rasterio
     from pystac_client import Client
@@ -82,8 +110,7 @@ def s2(cfg):
             t0, t1 = cfg["dates"][f"s2_{period}"]
             items = list(cat.search(collections=[sc["collection"]], bbox=bbox, datetime=f"{t0}/{t1}",
                                     query={"eo:cloud_cover": {"lt": sc["max_cloud"]}}).items())
-            items.sort(key=lambda it: it.properties.get("eo:cloud_cover", 100))
-            items = items[: sc["max_items_per_period"]]
+            items = pick_s2_items(items, bbox, sc["max_items_per_period"], sc.get("min_obs", 3))
             LOG.info("S2 %s: %d items", period, len(items))
             out = path(cfg, "raw", "s2", period, "x").parent
             for it in items:
@@ -174,7 +201,7 @@ def osm(cfg):
   relation["water"="reservoir"]({bb});
   way["landuse"="reservoir"]({bb});
 );
-out geom tags;"""
+out geom;"""     # not "out geom tags": that drops relation members, and with them multipolygon reservoirs
     r = requests.post(cfg["downloads"]["overpass_url"], data={"data": q}, timeout=400, headers=UA)
     r.raise_for_status()
     feats = []

@@ -45,8 +45,10 @@ sentinel2:
   stac_url: https://earth-search.aws.element84.com/v1
   collection: sentinel-2-l2a
   max_cloud: 40
-  max_items_per_period: 6
+  max_items_per_period: 10   # scenes per period, chosen so the whole AOI is covered (many are partial swaths)
+  min_obs: 3                 # aim to see every part of the AOI this many times
   assets: [nir08, swir22, scl]
+  boa_offset: 0.0     # reflectance = DN * 1e-4 + boa_offset; Earth Search files already have the offset removed
 
 downloads:
   dem_base: https://copernicus-dem-30m.s3.amazonaws.com
@@ -67,6 +69,8 @@ severity:
   # median, 5x5 median filter) AND dNBR reaches the first break. Under cloud the radar decides alone. ASSUMPTION
   burn_dhv_db: -1.0
   min_burn_patch_ha: 5       # smaller isolated patches are treated as noise
+  burn_dhv_radar_only_db: -2.0   # stricter HV drop where there is no dNBR (cloud, outside the S2 subset). ASSUMPTION
+  min_hv_pre_db: -23.0           # darker than this before the fire = water or bare ground, never burned. ASSUMPTION
   # Classes from radar alone, where dNBR is missing and no model can be trained: HV change (dB) breaks. ASSUMPTION
   dhv_breaks_db: [-1.0, -2.5, -4.0]
   rf_samples: 40000
@@ -122,6 +126,7 @@ groundwater:
   aquifer_rating: 5       # ASSUMPTION unless GLHYMPS permeability is provided
 
 towns:
+  debris_radius_m: 5000     # debris-flow rating looks only at channels this close to the town or reservoir. ASSUMPTION
   snap_radius_m: 300        # a town is snapped to the largest stream within this distance ...
   max_snap_m: 1500          # ... widening up to this distance until it drains at least:
   min_catchment_km2: 1.0

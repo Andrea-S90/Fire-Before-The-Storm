@@ -58,31 +58,46 @@ def to_mercator(src_path, max_px, categorical):
 
 
 def colorize(a, cmap, vmin, vmax, categorical, clear_low=False):
+    """Palette image (256 colours, index 0 transparent): a few times smaller than RGBA and exact, because
+    every colour comes from a 255-step colour map anyway."""
     from matplotlib import colormaps
-    rgba = np.zeros(a.shape + (4,), "uint8")
+    from PIL import Image
+    idx = np.zeros(a.shape, "uint8")
     ok = np.isfinite(a)
+    palette = np.zeros((256, 3), "uint8")
+    alpha = np.zeros(256, "uint8")
     if categorical:
         for k, col in SEV_COLORS.items():
-            rgba[ok & (np.round(a) == k)] = col
-        return rgba
-    x = np.clip((a - vmin) / (vmax - vmin), 0, 1)
-    rgba[ok] = (colormaps[cmap](x[ok]) * 255).astype("uint8")
-    rgba[..., 3][ok] = 210
-    if clear_low:   # no ash / no exposure -> transparent, so the base map shows through
-        rgba[..., 3][ok & (x <= 0.02)] = 0
-    return rgba
+            if col[3] > 0:
+                idx[ok & (np.round(a) == k)] = k
+                palette[k], alpha[k] = col[:3], col[3]
+    else:
+        x = np.clip((a - vmin) / (vmax - vmin), 0, 1)
+        idx[ok] = 1 + np.round(x[ok] * 254).astype("uint8")
+        if clear_low:   # no ash / no exposure -> transparent, so the base map shows through
+            idx[ok & (x <= 0.02)] = 0
+        palette[1:] = (colormaps[cmap](np.linspace(0, 1, 255))[:, :3] * 255).astype("uint8")
+        alpha[1:] = 210
+    im = Image.fromarray(idx)
+    im.putpalette(palette.ravel().tolist())
+    im.info["transparency"] = bytes(alpha.tolist())
+    return im
 
 
-def reproject_geojson(gj, src_crs, nd=5):
+def reproject_geojson(gj, src_crs, nd=5, simplify_m=0):
     from pyproj import Transformer
     import shapely
     from shapely.geometry import mapping, shape
     tr = Transformer.from_crs(src_crs, "EPSG:4326", always_xy=True).transform
     feats = []
     for f in gj["features"]:
-        g = shapely.transform(shape(f["geometry"]), lambda xy: np.column_stack(tr(xy[:, 0], xy[:, 1])))
+        g0 = shape(f["geometry"])
+        if simplify_m:
+            g0 = g0.simplify(simplify_m)
+        g = shapely.transform(g0, lambda xy: np.column_stack(tr(xy[:, 0], xy[:, 1])))
         g = json.loads(json.dumps(mapping(g)), parse_float=lambda s: round(float(s), nd))
-        feats.append({"type": "Feature", "geometry": g, "properties": f["properties"]})
+        props = {k: (round(v, 3) if isinstance(v, float) else v) for k, v in f["properties"].items()}
+        feats.append({"type": "Feature", "geometry": g, "properties": props})
     return {"type": "FeatureCollection", "features": feats}
 
 
@@ -105,7 +120,8 @@ def main():
         a, corners = to_mercator(src, cfg["export"]["max_png_px"], cat)
         if vmax is None:
             vmax = float(np.nanpercentile(a, 98)) if np.isfinite(a).any() else 1.0
-        Image.fromarray(colorize(a, cmap, vmin, vmax, cat, clear_low=lid in ("ash", "erosion", "wind_exposure"))).save(web / "img" / f"{lid}.png", optimize=True)
+        im = colorize(a, cmap, vmin, vmax, cat, clear_low=lid in ("ash", "erosion", "wind_exposure"))
+        im.save(web / "img" / f"{lid}.png", transparency=im.info["transparency"], optimize=True)
         manifest.append(dict(id=lid, title=title, url=f"img/{lid}.png", coordinates=corners, units=units,
                              legend=dict(cmap=cmap, min=vmin, max=vmax) if not cat else
                              dict(classes=["unburned", "low", "moderate", "high"],
@@ -124,7 +140,8 @@ def main():
         if name == "streams":   # keep the network that matters: burned or large
             gj["features"] = [f for f in gj["features"] if (f["properties"].get("burned_share") or 0) > 0.01
                               or (f["properties"].get("area_km2") or 0) > 5]
-        (web / f"{name}.geojson").write_text(json.dumps(reproject_geojson(gj, crs)))
+        out = reproject_geojson(gj, crs, simplify_m=grid.res if name == "streams" else 0)
+        (web / f"{name}.geojson").write_text(json.dumps(out, separators=(",", ":")))
         LOG.info("%s: %d features", name, len(gj["features"]))
 
     # burned area outline (from the severity map, simplified)
@@ -137,7 +154,7 @@ def main():
     if polys:
         u = unary_union(polys).buffer(grid.res).buffer(-grid.res).simplify(grid.res * 2)
         gj = {"type": "FeatureCollection", "features": [{"type": "Feature", "geometry": mapping(u), "properties": {}}]}
-        (web / "burned_area.geojson").write_text(json.dumps(reproject_geojson(gj, crs)))
+        (web / "burned_area.geojson").write_text(json.dumps(reproject_geojson(gj, crs), separators=(",", ":")))
 
     towns_p = path(cfg, "work", "towns", "towns.json", mkdir=False)
     if towns_p.exists():
