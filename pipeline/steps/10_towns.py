@@ -184,7 +184,7 @@ def main():
                 hv = db(read_raster(path(cfg, "work", "nisar", rr_["HV"])))
                 dv = (hv - pre_db[rr_["key"]])[bm]
                 med = float(np.nanmedian(dv)) if np.isfinite(dv).mean() > 0.5 else np.nan
-                if np.isfinite(med) and abs(med) < 12:      # beyond 12 dB is a corrupt acquisition, not vegetation
+                if np.isfinite(med) and abs(med) < 8:       # beyond 8 dB is a corrupt acquisition, not vegetation
                     series.append(dict(date=rr_["date"], pass_id=rr_["key"], dhv_db=round(med, 2)))
         runoff_lv = worst(level(modhigh, lv["runoff_modhigh_share"]), level(ash_del["p50"], lv["runoff_ash_t"]))
         rec = dict(

@@ -34,9 +34,19 @@ def s2_composite(cfg, grid, period):
     for iid, d in items.items():
         if not {"nir08", "swir22", "scl"} <= d.keys():
             continue
-        # Earth Search L2A (processing baseline >= 04.00): reflectance = DN * 1e-4 - 0.1
-        nir = to_grid(d["nir08"], grid, Resampling.bilinear, src_nodata=0) * 1e-4 - 0.1
-        sw = to_grid(d["swir22"], grid, Resampling.bilinear, src_nodata=0) * 1e-4 - 0.1
+        # reflectance = DN * 1e-4 + sentinel2.boa_offset. Earth Search v1 files already have the baseline-04
+        # offset removed (earthsearch:boa_offset_applied = true), so the offset is 0 there; subtracting 0.1 again
+        # roughly doubles dNBR. Files straight from Copernicus (not yet corrected) need boa_offset: -0.1.
+        off = float(cfg["sentinel2"].get("boa_offset", 0.0))
+        nir_dn = to_grid(d["nir08"], grid, Resampling.bilinear, src_nodata=0)
+        sw_dn = to_grid(d["swir22"], grid, Resampling.bilinear, src_nodata=0)
+        if np.isfinite(sw_dn).any():
+            dark = float(np.nanpercentile(sw_dn, 0.5))
+            if off < 0 and dark < 500:      # an uncorrected file cannot go below DN 1000
+                LOG.warning("  %s: darkest SWIR values are around DN %.0f, which does not fit boa_offset %.1f: "
+                            "check sentinel2.boa_offset in the config", iid, dark, off)
+        nir = nir_dn * 1e-4 + off
+        sw = sw_dn * 1e-4 + off
         scl = to_grid(d["scl"], grid, Resampling.nearest, src_nodata=0)
         bad = np.isnan(scl) | np.isin(np.nan_to_num(scl, nan=0).astype(int), list(BAD_SCL))
         with np.errstate(invalid="ignore", divide="ignore"):

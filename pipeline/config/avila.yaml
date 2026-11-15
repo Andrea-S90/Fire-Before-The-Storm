@@ -48,6 +48,7 @@ sentinel2:
   max_items_per_period: 10   # scenes per period, chosen so the whole AOI is covered (many are partial swaths)
   min_obs: 3                 # aim to see every part of the AOI this many times
   assets: [nir08, swir22, scl]
+  boa_offset: 0.0     # reflectance = DN * 1e-4 + boa_offset; Earth Search files already have the offset removed
 
 downloads:
   dem_base: https://copernicus-dem-30m.s3.amazonaws.com

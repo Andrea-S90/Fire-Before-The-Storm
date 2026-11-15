@@ -129,7 +129,7 @@ def main(root):
     # urgent-response duplicate that must be skipped
     (raw / "nisar" / name.replace("_PR_", "_UR_")).write_bytes(b"")
 
-    # Sentinel-2 items (DN, offset +1000 like processing baseline >= 04.00)
+    # Sentinel-2 items (DN = reflectance * 1e4, offset already removed as in the Earth Search files)
     xs, ys, f, sev, _ = utm_field(20.0)
     tr = from_origin(xs[0] - 10, ys[0] + 10, 20, 20)
     for period, burned in (("pre", False), ("post", True)):
@@ -139,11 +139,12 @@ def main(root):
             if burned:
                 nir = nir - np.array([0, 0.05, 0.12, 0.2])[sev]
                 sw = sw + np.array([0, 0.03, 0.08, 0.12])[sev]
+            nir, sw = np.clip(nir, 0.02, None), np.clip(sw, 0.02, None)   # DN 0 would read as nodata
             scl = np.full(f.shape, 4)
             scl[: f.shape[0] // 5, k * 40: k * 40 + 60] = 9      # a cloud
             iid = f"S2X_30TUK_2026{'0715' if not burned else '0815'}_{k}_L2A"
-            write_tif(raw / "s2" / period / f"{iid}_nir08.tif", (nir + 0.1) * 1e4 + rng.normal(0, 30, f.shape), tr, "EPSG:32630", dtype="uint16")
-            write_tif(raw / "s2" / period / f"{iid}_swir22.tif", (sw + 0.1) * 1e4 + rng.normal(0, 30, f.shape), tr, "EPSG:32630", dtype="uint16")
+            write_tif(raw / "s2" / period / f"{iid}_nir08.tif", nir * 1e4 + rng.normal(0, 30, f.shape), tr, "EPSG:32630", dtype="uint16")
+            write_tif(raw / "s2" / period / f"{iid}_swir22.tif", sw * 1e4 + rng.normal(0, 30, f.shape), tr, "EPSG:32630", dtype="uint16")
             write_tif(raw / "s2" / period / f"{iid}_scl.tif", scl, tr, "EPSG:32630", dtype="uint8")
 
     # OSM-like GeoJSON
