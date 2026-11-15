@@ -12,7 +12,7 @@ water could be polluted, by which pathway, and how confident that estimate is. I
 L-band radar, which measures the forest before the fire, the burn through smoke, and the regrowth afterwards.
 
 Project for the [NASA Space Apps Challenge 2026](https://www.spaceappschallenge.org/2026/), challenge
-*Dancing with the SARs*. Team: Andrea Serio and Masha Golikova. Demo case: the Burgohondo fire in Ávila,
+*Dancing with the SARs*. Team: Andrea Serio and Maria Golikova. Demo case: the Burgohondo fire in Ávila,
 Spain (July 2026) and the ash-laden runoff that followed the first autumn rain in October.
 
 ![Fire Before the Storm](media/Lockup%20%C2%B7%20drop%20in%20the%20flame.png)
