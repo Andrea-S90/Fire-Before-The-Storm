@@ -9,6 +9,7 @@
 //   news:      news reports as text cards (outlet, date, headline, link; never their photos or screenshots)
 //              and the towns each names (towns: ids; a line is drawn from the card to each)
 //   explainer: 'sentinel2' | 'nisar' | 'ash', a plain-language card on a satellite or on the ash formula
+//   burnedNote: an official burned-area figure (with its source) to compare with ours in a 'How we compute this' box
 const AVILA = { center: [-4.66, 40.38], zoom: 9.6 }
 const PRE = ['pre_start', 'fire_start']
 const POST = ['post_start', 'post_end']
@@ -18,6 +19,8 @@ const STORM = ['hindcast_start', 'hindcast_end']
 export const chapters = [
   { id: 'intro', title: 'The fire is out. The danger isn’t.',
     body: 'In early October 2026, the first autumn rain washed ash from the Burgohondo fire into the rivers of Ávila. Tap water in Casavieja and Piedralaves was declared unfit to drink.',
+    burnedNote: { official_ha: 33943, source: 'Reuters via Devdiscourse, 7 October 2026',
+      url: 'https://www.devdiscourse.com/article/international/3988408-wildfire-ash-turns-spanish-mountain-river-black-contaminating-water-supply' },
     view: { center: [-4.66, 40.38], zoom: 8.6 }, overlays: [], vectors: ['reported', 'towns'],
     time: [STORM], timeLabel: 'towns rated after the fire; the rain came in early October',
     news: [

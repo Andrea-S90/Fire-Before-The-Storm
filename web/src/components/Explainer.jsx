@@ -1,32 +1,11 @@
 // Plain-language cards on how each satellite sees the fire. Schematic drawings, not agency images.
+// The NISAR card uses an AI-generated rendering (watermarked in the file itself, as Space Apps requires).
+import nisarImg from '../assets/nisar-explainer.jpg'
 // kind: 'sentinel2' (optical burn ratio) | 'nisar' (L-band radar polarizations)
 const H = '#2b6ca3'   // horizontal polarization
 const V = '#6a51a3'   // vertical polarization
 const NIR = '#1a9850'
 const SWIR = '#d94801'
-
-function Arrowheads({ id }) {
-  return (
-    <defs>
-      {[['h', H], ['v', V], ['k', '#5b544c']].map(([k, c]) => (
-        <marker key={k} id={`${id}-${k}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" markerUnits="userSpaceOnUse"
-          orient="auto-start-reverse">
-          <path d="M0,0 L10,5 L0,10 z" fill={c} />
-        </marker>
-      ))}
-    </defs>
-  )
-}
-
-// a small double arrow: the direction the wave's electric field swings
-function Pol({ x, y, dir, id, size = 7, opacity = 1 }) {
-  const c = dir === 'h' ? H : V
-  const [dx, dy] = dir === 'h' ? [size, 0] : [0, size]
-  return (
-    <line x1={x - dx} y1={y - dy} x2={x + dx} y2={y + dy} stroke={c} strokeWidth="2" opacity={opacity}
-      markerStart={`url(#${id}-${dir})`} markerEnd={`url(#${id}-${dir})`} />
-  )
-}
 
 function Satellite({ x, y, kind }) {
   if (kind === 'nisar') {
@@ -87,68 +66,6 @@ function Sentinel2() {
   )
 }
 
-function Nisar() {
-  const id = 'nx'
-  const ground = 150
-  const panel = (x0, burned) => (
-    <g>
-      <text x={x0 + 85} y="16" fontSize="10" fontWeight="600" textAnchor="middle" fill="#1c1917">
-        {burned ? 'After the fire' : 'Forest'}
-      </text>
-      {/* pulse going down, horizontally polarized */}
-      <line x1={x0 + 12} y1="34" x2={x0 + 62} y2="98" stroke="#5b544c" strokeWidth="1.2" strokeDasharray="4 3"
-        markerEnd={`url(#${id}-k)`} />
-      <Pol x={x0 + 22} y={56} dir="h" id={id} />
-      <text x={x0 + 4} y="74" fontSize="9" fill={H} fontWeight="600">H sent</text>
-      {/* ground */}
-      <rect x={x0} y={ground} width="170" height="10" fill={burned ? '#8a8580' : '#8c6d46'} />
-      {burned
-        ? [40, 70, 104, 132].map((dx, i) => (
-          <line key={dx} x1={x0 + dx} y1={ground} x2={x0 + dx + (i % 2 ? 2 : -2)} y2={ground - 30 - (i % 2) * 12}
-            stroke="#2b2b2b" strokeWidth="2.5" strokeLinecap="round" />
-        ))
-        : [44, 84, 124].map((dx) => (
-          <g key={dx}>
-            <line x1={x0 + dx} y1={ground} x2={x0 + dx} y2={ground - 30} stroke="#5d4430" strokeWidth="3" />
-            <ellipse cx={x0 + dx} cy={ground - 44} rx="19" ry="23" fill="#4d9221" opacity="0.9" />
-            <path d={`M${x0 + dx},${ground - 28} l-10,-14 M${x0 + dx},${ground - 36} l9,-12`}
-              stroke="#5d4430" strokeWidth="1.5" />
-          </g>
-        ))}
-      {/* echoes going back up */}
-      {burned ? (
-        <>
-          <line x1={x0 + 96} y1="104" x2={x0 + 146} y2="40" stroke={H} strokeWidth="1.6" markerEnd={`url(#${id}-h)`} />
-          <Pol x={x0 + 150} y={62} dir="h" id={id} />
-          <Pol x={x0 + 150} y={84} dir="v" id={id} size={4} opacity={0.45} />
-          <text x={x0 + 142} y="102" fontSize="9" fill={H} fontWeight="600">HH</text>
-        </>
-      ) : (
-        <>
-          <line x1={x0 + 86} y1="96" x2={x0 + 140} y2="40" stroke={V} strokeWidth="1.6" markerEnd={`url(#${id}-v)`} />
-          <line x1={x0 + 104} y1="104" x2={x0 + 156} y2="52" stroke={V} strokeWidth="1.6" markerEnd={`url(#${id}-v)`} />
-          <Pol x={x0 + 160} y={78} dir="v" id={id} size={8} />
-          <text x={x0 + 150} y="104" fontSize="9" fill={V} fontWeight="600">HV</text>
-          <Pol x={x0 + 140} y={90} dir="h" id={id} size={5} opacity={0.6} />
-        </>
-      )}
-      <text x={x0 + 85} y={ground + 24} fontSize="9.5" textAnchor="middle" fill="#1c1917">
-        {burned ? 'HV drops; bare ground echoes H (HH)' : 'Wood scatters it many times: strong HV'}
-      </text>
-    </g>
-  )
-  return (
-    <svg viewBox="0 0 360 180" role="img"
-      aria-label="In a forest the radar echo comes back partly vertical (strong HV); after the fire HV drops.">
-      <Arrowheads id={id} />
-      {panel(0, false)}
-      {panel(190, true)}
-      <line x1="180" y1="30" x2="180" y2="150" stroke="#e4ddd3" />
-      <Satellite x={180} y={14} kind="nisar" />
-    </svg>
-  )
-}
-
 // The ash formula as pipeline/ashwatch/ash.py computes it; totals come from meta.json "ash".
 function Ash({ ash }) {
   const t = ash?.total_ash_t
@@ -198,14 +115,15 @@ export default function Explainer({ kind, meta }) {
   return (
     <figure className="card explainer">
       <figcaption><strong>How NISAR sees a forest</strong></figcaption>
-      <Nisar />
+      <img className="explainer-img" src={nisarImg} width="1100" height="624" loading="lazy"
+        alt="Left, a forest: the radar sends a horizontally polarized pulse and branches return a strong HV echo. Right, after the fire: burned trunks and bare ground return mostly HH, and HV drops." />
       <p className="muted">
         NISAR (NASA-ISRO) sends 24 cm microwaves, polarized horizontally (H), through smoke and cloud. Branches
         and trunks bounce them around and turn part of the echo vertical: a strong{' '}
         <b style={{ color: V }}>HV</b> signal. When the canopy burns, HV drops. Bare ground echoes mostly{' '}
         <b style={{ color: H }}>H</b> (HH), which rises on wet soil: HV down means burned, HH up alone means rain.
       </p>
-      <p className="credit">Schematic drawing, made with AI assistance.</p>
+      <p className="credit">AI-generated illustration (schematic, not to scale).</p>
     </figure>
   )
 }
