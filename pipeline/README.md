@@ -95,6 +95,8 @@ sbatch --export=ALL,STEPS="10 11 12" slurm/process.sbatch          # re-run only
 ## 4. Bring the results to the laptop
 
 ```bash
+# on the cluster, right after step 12: check the export against the data contract (standard library only)
+python ../tools/check_data.py
 # from the laptop
 rsync -av user@cluster:path/to/Fire-Before-The-Storm/web/public/data/ web/public/data/
 ```

@@ -15,4 +15,8 @@ dist/
 .netrc
 .cdsapirc
 # BlueBEAR site settings (paths, module names)
-slurm/bluebear.local.sh
+pipeline/slurm/bluebear.local.sh
+# Claude Code: per-machine files stay local; CLAUDE.md, .claude/commands and .claude/launch.json are shared
+.claude/worktrees/
+.claude/settings.local.json
+.vercel/
