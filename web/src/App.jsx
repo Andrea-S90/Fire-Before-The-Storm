@@ -5,6 +5,7 @@ import MapView from './components/MapView.jsx'
 import TownCard from './components/TownCard.jsx'
 import Hindcast from './components/Hindcast.jsx'
 import WindRose from './components/WindRose.jsx'
+import About from './components/About.jsx'
 
 export default function App() {
   const [data, setData] = useState(null)
@@ -32,6 +33,11 @@ export default function App() {
   const town = data.towns.find((t) => t.id === townId)
     ?? data.towns.find((t) => t.named_in_reports && t.kind === 'town') ?? data.towns[0]
   const chapter = chapters[active]
+  const goTo = (i) => {
+    if (i < 0 || i >= chapters.length) return
+    setActive(i)   // the map reacts at once; the scroll observer confirms when the step arrives
+    stepRefs.current[i]?.scrollIntoView({ behavior: 'smooth', block: i === chapters.length - 1 ? 'start' : 'center' })
+  }
 
   return (
     <>
@@ -45,7 +51,7 @@ export default function App() {
       <main className="story">
         {chapters.map((c, i) => (
           <section key={c.id} data-i={i} ref={(el) => { stepRefs.current[i] = el }}
-            className={`step ${i === active ? 'active' : ''}`}>
+            className={`step ${i === active ? 'active' : ''} ${c.panel === 'about' ? 'wide' : ''}`}>
             <h2>{c.title}</h2>
             <p>{c.body}</p>
             {c.panel === 'towns' && (
@@ -71,10 +77,18 @@ export default function App() {
             {c.panel === 'credits' && (
               <ul className="credits">{data.meta.sources.map((s) => <li key={s}>{s}</li>)}</ul>
             )}
+            {c.panel === 'about' && <About generated={data.meta.generated} />}
           </section>
         ))}
         <footer>Data export {data.meta.generated.slice(0, 16).replace('T', ' ')} UTC · {data.meta.config}</footer>
       </main>
+      <nav className="pager" aria-label="Sections">
+        <button type="button" onClick={() => goTo(active - 1)} disabled={active === 0}
+          aria-label="Previous section">‹ Back</button>
+        <span>{active + 1} / {chapters.length} · {chapter.title}</span>
+        <button type="button" onClick={() => goTo(active + 1)} disabled={active === chapters.length - 1}
+          aria-label="Next section">Next ›</button>
+      </nav>
     </>
   )
 }

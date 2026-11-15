@@ -163,7 +163,7 @@ The mathematician owns the radar and the model on the cluster; the analyst owns 
 
 &#91;embedded content: Build timeline · 6 phases, 2 people, 2 gates\]
 
-Rule of thumb: if a step is two hours late, drop the next stretch item, never the hindcast or the video.
+Rule of thumb: if a step is two hours late, drop the next stretch item, never the hindcast or the video. Update, Sunday morning: the hard stop is 16:00 (Barcelona local event), not 23:59, so the core freeze at 13:00 stands and stretch items are off.
 
 ## Validation: the October hindcast
 
@@ -179,7 +179,14 @@ Be honest in the pitch: one fire is a case study, not proof. IMERG's 10 km grid 
 
 ## Demo and submission
 
-Submission closes Sunday Nov 15 at 23:59 local time of the team owner's event ([Space Apps](https://www.spaceappschallenge.org/2026/)); aim to submit by 22:30. The demo is a video of up to 30 seconds with English subtitles, or up to 7 slides, hosted on a public link ([submission guide](https://www.spaceappschallenge.org/resources/project-submission-guide/)).
+**Two deadlines, both on Sunday Nov 15.** We are at the Barcelona local event: submit by **16:00** and present live at **16:30**. The global form closes at 23:59 Barcelona time ([submission guide](https://www.spaceappschallenge.org/resources/project-submission-guide/)).
+
+- **Edits after submitting.** The guide allows editing and resubmitting as often as we like until 23:59; only the last saved submission is judged globally. Whether Barcelona's judges accept changes after 16:00 is the Local Lead's call: ask before relying on it. Plan: submit a complete version by 15:30, then improve and resubmit only if allowed.
+- **Demo.** A video of 30 seconds or less, or at most 7 slides including title and intro. Going over either limit makes the project ineligible for global judging. English, or English subtitles. Public link, no login.
+- **Required fields.** Project name, high-level summary, link to demo, link to final project, detailed description, use of AI, NASA data, partner data and references. The form will not submit with one empty. The site's "About this project" section holds the same text (`web/src/project.js`), so copy from there.
+- **AI use.** Code and data made with AI must be acknowledged in text (the README and the About section do); AI-generated images or video need a visible watermark.
+- **Judging criteria.** Impact, Creativity, Validity, Relevance, Presentation.
+- **Optional.** Request a FortiGuard web-filter classification for the site so judges are not blocked.
 
 **30-second video**
 
@@ -195,7 +202,9 @@ Submission closes Sunday Nov 15 at 23:59 local time of the team owner's event ([
 - [ ] Public GitHub repo with README and open-source license
 - [ ] App online (GitHub Pages or similar)
 - [ ] Video uploaded, public, English subtitles, 30 s or less
-- [ ] Project page: summary, NASA data used, partner data, tools, and every required field
+- [ ] Project page: all eight required fields, copied from `web/src/project.js`
+- [ ] Demo and site links set in `web/src/project.js`
+- [ ] Local Lead asked whether changes after 16:00 count
 - [ ] Terms and conditions box ticked, Submit pressed
 
 ## Risks and fallbacks

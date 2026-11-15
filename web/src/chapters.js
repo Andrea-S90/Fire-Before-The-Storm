@@ -1,7 +1,7 @@
 // The story, as data. Edit text and map state here; no component changes needed.
 //   overlays: ids from layers.json shown as rasters
 //   vectors:  burned | streams | catchments | water | towns
-//   panel:    towns | hindcast | wind | rain | credits
+//   panel:    towns | hindcast | wind | rain | credits | about
 //   view:     MapLibre camera
 const AVILA = { center: [-4.66, 40.38], zoom: 9.6 }
 
@@ -33,4 +33,7 @@ export const chapters = [
   { id: 'credits', title: 'Any fire, anywhere',
     body: 'Every input is a global open dataset. A new fire needs a new bounding box and a re-run.',
     view: { center: [-4.66, 40.38], zoom: 7.5 }, overlays: [], vectors: ['burned'], panel: 'credits' },
+  { id: 'about', title: 'About this project',
+    body: 'What we built, the data behind it and how it was made.',
+    view: { center: [-4.66, 40.38], zoom: 7.5 }, overlays: [], vectors: ['burned'], panel: 'about' },
 ]

@@ -57,7 +57,8 @@ shows the export time from `meta.json`. Andrea does nothing unless the contract 
 ## Site
 
 Vite + React + MapLibre GL, static files only. `web/src/chapters.js` is the story as data: text, camera,
-which overlays and vectors are on, which panel shows. Change the story there. `web/src/data.js` is the only
+which overlays and vectors are on, which panel shows. Change the story there. `web/src/project.js` holds the
+project facts shown in the About section, under the same headings as the Space Apps project page. `web/src/data.js` is the only
 place that fetches. Components are in `web/src/components/`.
 
 ## Pipeline
