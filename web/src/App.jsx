@@ -10,6 +10,7 @@ import Legend from './components/Legend.jsx'
 import Timeline from './components/Timeline.jsx'
 import Headlines from './components/Headlines.jsx'
 import Explainer from './components/Explainer.jsx'
+import BurnedAreaNote from './components/BurnedAreaNote.jsx'
 import NewsLinks from './components/NewsLinks.jsx'
 
 export default function App() {
@@ -63,6 +64,7 @@ export default function App() {
             <h2>{c.title}</h2>
             <p>{c.body}</p>
             {c.news && <Headlines items={c.news} />}
+            {c.burnedNote && <BurnedAreaNote meta={data.meta} official={c.burnedNote} />}
             <Legend chapter={c} layers={data.layers} rain={rain} />
             {c.explainer && <Explainer kind={c.explainer} meta={data.meta} />}
             {c.panel === 'towns' && (
