@@ -13,9 +13,9 @@ export const project = {
   },
   description: [
     'What it does. For each town or reservoir downstream of a fire, Ash Watch gives one card: a level for four pathways (surface runoff, debris flow, groundwater, airborne ash), the evidence behind it and the first lab tests to run.',
-    'How it works. A pipeline on an HPC cluster cuts every NISAR GCOV acquisition to the area, compares HV and HH backscatter before and after the fire per pass, and combines the radar change with Sentinel-2 to map the burn. Pre-fire HV is fitted to ESA CCI Biomass to estimate fuel, and fuel times severity gives an ash load with a Monte Carlo range. Terrain routing sends that ash down each catchment; a published debris-flow model gives a rain trigger per stream; wind and a groundwater index give two screening layers. The pipeline exports small files that this static site reads.',
+    'How it works. A Python pipeline cuts every NISAR GCOV acquisition to the area, compares HV and HH backscatter before and after the fire per pass, and combines the radar change with Sentinel-2 to map the burn. Pre-fire HV is fitted to ESA CCI Biomass to estimate fuel, and fuel times severity gives an ash load with a Monte Carlo range. Terrain routing sends that ash down each catchment; a published debris-flow model gives a rain trigger per stream; wind and a groundwater index give two screening layers. The pipeline exports small files that this static site reads.',
     'What it is not. One fire is a case study, not a validation. The debris-flow model was calibrated in the western United States, so read it as a ranking. Groundwater and airborne ash have no local measurements behind them and are labelled screening and indicative.',
-    'Built with. Python (rasterio, pysheds, scikit-learn, h5py), Slurm on the University of Birmingham BlueBEAR cluster, Vite, React and MapLibre GL JS. Open source under Apache-2.0.',
+    'Built with. Python (rasterio, pysheds, scikit-learn, h5py), Vite, React and MapLibre GL JS. Open source under Apache-2.0.',
   ],
   ai: 'The pipeline code, the site code and the documentation were written with Claude Code (Anthropic), directed and reviewed by the team; commits made that way carry a Co-Authored-By line. The idea, the choice of methods and the interpretation are ours.',
   nasaData: [
