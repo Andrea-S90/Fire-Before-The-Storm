@@ -5,6 +5,8 @@
 //   view:      MapLibre camera
 //   time:      periods highlighted on the timeline, as pairs of keys of meta.json "dates"
 //   timeLabel: what the map shows, in words, next to the timeline
+//   news:      news reports shown as text cards (outlet, date, headline, link; never their photos)
+//   explainer: 'sentinel2' | 'nisar', a plain-language card on how that satellite sees the fire
 const AVILA = { center: [-4.66, 40.38], zoom: 9.6 }
 const PRE = ['pre_start', 'fire_start']
 const POST = ['post_start', 'post_end']
@@ -15,15 +17,27 @@ export const chapters = [
   { id: 'intro', title: 'The fire is out. The danger isn’t.',
     body: 'In early October 2026, the first autumn rain washed ash from the Burgohondo fire into the rivers of Ávila. Tap water in Casavieja and Piedralaves was declared unfit to drink.',
     view: { center: [-4.66, 40.38], zoom: 8.6 }, overlays: [], vectors: ['towns'],
-    time: [STORM], timeLabel: 'towns rated after the fire; the rain came in early October' },
+    time: [STORM], timeLabel: 'towns rated after the fire; the rain came in early October',
+    news: [
+      { outlet: 'El Debate', date: '28 July 2026', lang: 'es',
+        headline: 'Casavieja, el pueblo abulense que sobrevive a un escenario de guerra sin luz ni agua',
+        english: 'During the fire: Casavieja without power or drinking water',
+        url: 'https://www.eldebate.com/espana/castilla-y-leon/20260728/casavieja-pueblo-abulense-sobrevive-escenario-guerra-luz-agua_444145.html' },
+      { outlet: 'Reuters via Devdiscourse', date: '7 October 2026', lang: 'en',
+        headline: 'Wildfire ash turns Spanish mountain river black, contaminating water supply',
+        english: 'After the first rain: tap water in Piedralaves declared unfit for consumption',
+        url: 'https://www.devdiscourse.com/article/international/3988408-wildfire-ash-turns-spanish-mountain-river-black-contaminating-water-supply' },
+    ] },
   { id: 'fire', title: 'The fire',
     body: 'Between 22 July and 6 August the fire burned across the Alberche and Tiétar valleys.',
     view: AVILA, overlays: ['severity'], vectors: ['burned'],
-    time: [PRE, POST], timeLabel: 'burn severity, from the change between before and after the fire' },
+    time: [PRE, POST], timeLabel: 'burn severity, from the change between before and after the fire',
+    explainer: 'sentinel2' },
   { id: 'radar', title: 'What radar sees',
     body: 'NISAR’s L-band radar passes every 12 days and sees through smoke and cloud. HV backscatter comes from branches and trunks: when the canopy burns, it drops.',
     view: AVILA, overlays: ['dhv'], vectors: ['burned'],
-    time: [PRE, POST], timeLabel: 'radar change, after the fire minus before' },
+    time: [PRE, POST], timeLabel: 'radar change, after the fire minus before',
+    explainer: 'nisar' },
   { id: 'ash', title: 'From forest to ash',
     body: 'Fuel before the fire, times how much burned, times how much of that turns to ash. Every factor is a range, so the result is a range too.',
     view: AVILA, overlays: ['ash'], vectors: ['burned'],

@@ -8,6 +8,8 @@ import WindRose from './components/WindRose.jsx'
 import About from './components/About.jsx'
 import Legend from './components/Legend.jsx'
 import Timeline from './components/Timeline.jsx'
+import Headlines from './components/Headlines.jsx'
+import Explainer from './components/Explainer.jsx'
 
 export default function App() {
   const [data, setData] = useState(null)
@@ -57,7 +59,9 @@ export default function App() {
             className={`step ${i === active ? 'active' : ''} ${c.panel === 'about' ? 'wide' : ''}`}>
             <h2>{c.title}</h2>
             <p>{c.body}</p>
+            {c.news && <Headlines items={c.news} />}
             <Legend chapter={c} layers={data.layers} rain={rain} />
+            {c.explainer && <Explainer kind={c.explainer} />}
             {c.panel === 'towns' && (
               <>
                 <select value={town.id} onChange={(e) => setTownId(e.target.value)} aria-label="Town">
