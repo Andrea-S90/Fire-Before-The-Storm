@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-time credential setup on the cluster (run on the login node). Never commit these files.
+# One-time credential setup. The files it writes stay in your home folder; never commit them.
 #
 # 1) NASA Earthdata login (NISAR via ASF, GPM IMERG via GES DISC)
 #    - Account: https://urs.earthdata.nasa.gov  (free)

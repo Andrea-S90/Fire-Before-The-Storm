@@ -75,7 +75,7 @@ def earthdata_token() -> str | None:
 
 
 def n_workers() -> int:
-    return int(os.environ.get("SLURM_CPUS_PER_TASK") or os.cpu_count() or 1)
+    return int(os.environ.get("ASHWATCH_WORKERS") or os.cpu_count() or 1)
 
 
 # --------------------------------------------------------------------------- grid

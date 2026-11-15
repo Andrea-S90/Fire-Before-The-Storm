@@ -1,6 +1,5 @@
-# keep Unix line endings for scripts that run on the Linux cluster, even when committed from Windows
+# keep Unix line endings for scripts that run on Linux or macOS, even when committed from Windows
 *.sh     text eol=lf
-*.sbatch text eol=lf
 *.py     text eol=lf
 *.yaml   text eol=lf
 *.yml    text eol=lf

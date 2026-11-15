@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# All downloads with the Python steps. Run on a node with internet (usually the login or transfer node):
+# All downloads with the Python steps (needs about 100 GB free; see scripts/nisar_in_batches.sh for less):
 #   nohup bash scripts/run_downloads.sh > logs/downloads.log 2>&1 &
 set -uo pipefail
 cd "$(dirname "$0")/.."

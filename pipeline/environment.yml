@@ -1,5 +1,4 @@
-# conda/mamba environment for the cluster:
-#   module load miniforge   # or anaconda/mamba, whatever your cluster provides
+# conda/mamba environment (alternative to requirements.txt):
 #   mamba env create -f environment.yml && conda activate ashwatch
 name: ashwatch
 channels: [conda-forge]

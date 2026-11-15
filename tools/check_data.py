@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check web/public/data against the data contract (docs/DATA_CONTRACT.md).
 
-Standard library only, so it runs anywhere: laptop, cluster login node, CI.
+Standard library only, so it runs anywhere, including CI.
 
     python tools/check_data.py              # errors fail (exit 1), warnings are printed
     python tools/check_data.py --strict     # warnings fail too

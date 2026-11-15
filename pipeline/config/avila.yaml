@@ -5,7 +5,7 @@ name: avila-2026
 
 paths:
   # Where raw downloads and intermediate files go. Relative paths are relative to this file.
-  # Override on the cluster with:  export ASHWATCH_DATA=/scratch/$USER/ashwatch
+  # Override with:  export ASHWATCH_DATA=/path/with/space/ashwatch_data
   data_root: ../../data
   # Where step 12 writes the web-ready files (the data contract for the story site)
   web_out: ../../web/public/data
