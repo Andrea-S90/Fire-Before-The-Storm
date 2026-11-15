@@ -3,7 +3,7 @@
 
 Averaging the 10-20 m radar pixels into 30 m cells (linear power) also reduces speckle.
 Frames of the same pass and date are mosaicked. Output: data/work/nisar/<date>_<track><dir>_{HH,HV}.tif
-and index.csv. Runs files in parallel ($SLURM_CPUS_PER_TASK).
+and index.csv. Runs files in parallel (all cores, or $ASHWATCH_WORKERS).
 """
 import csv
 import sys

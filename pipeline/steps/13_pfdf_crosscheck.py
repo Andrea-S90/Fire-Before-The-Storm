@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Step 13 (optional): cross-check our M1 implementation against the USGS pfdf library.
 
-pfdf is not on PyPI; install it on the cluster from the USGS GitLab:
+pfdf is not on PyPI; install it from the USGS GitLab:
   pip install "pfdf @ git+https://code.usgs.gov/ghsc/lhp/pfdf.git"
 Then run this script. It computes M1 variables per stream segment with pfdf and reports how closely the
 segment likelihoods at 24 mm/h agree with step 07. Function names follow the pfdf 3.x user guide;

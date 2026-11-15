@@ -1,4 +1,4 @@
-# big data stays on the cluster
+# big data is never committed
 data/
 *.h5
 *.HDF5
@@ -14,8 +14,6 @@ dist/
 .env
 .netrc
 .cdsapirc
-# BlueBEAR site settings (paths, module names)
-pipeline/slurm/bluebear.local.sh
 # Claude Code: per-machine files stay local; CLAUDE.md, .claude/commands and .claude/launch.json are shared
 .claude/worktrees/
 .claude/settings.local.json

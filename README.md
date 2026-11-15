@@ -16,7 +16,7 @@ Spain (July 2026) and the ash-laden runoff that followed the first autumn rain i
 
 ```
 NISAR GCOV (HH, HV) ─┐
-Sentinel-2, DEM,     ├─►  pipeline/ on the HPC cluster  ─►  web/public/data/  ─►  web/ story site
+Sentinel-2, DEM,     ├─►  pipeline/ (Python, 13 steps)  ─►  web/public/data/  ─►  web/ story site
 biomass, soil, wind, ┘    13 steps, run once per fire        small files            static, MapLibre
 rain, OpenStreetMap                                          (the data contract)
 ```
@@ -34,7 +34,7 @@ Methods, one paragraph each: [pipeline/README.md](pipeline/README.md). Full plan
 ## Repository
 
 ```
-pipeline/           HPC jobs (steps 01 to 13), config, Slurm scripts, synthetic end-to-end test
+pipeline/           processing steps 01 to 13, config, run scripts, synthetic end-to-end test
 web/                story site: Vite + React + MapLibre GL
   public/data/      exported files, written by pipeline step 12 (the data contract)
   src/chapters.js   the story as data: text, camera and layers per chapter
@@ -65,9 +65,9 @@ looks implausible and needs a human look. The same check runs in CI and before e
 
 ## Run the pipeline
 
-Needs an HPC cluster or a large workstation, a NASA Earthdata login and a Copernicus CDS key. See
-[pipeline/README.md](pipeline/README.md), or [pipeline/BLUEBEAR.md](pipeline/BLUEBEAR.md) for the University
-of Birmingham cluster. A smoke test on synthetic data needs no downloads:
+Runs on one Linux or macOS machine. Needs a NASA Earthdata login, a Copernicus CDS key and either 100 GB of
+free disk or about 30 GB with the pass-by-pass download. See [pipeline/README.md](pipeline/README.md). A smoke
+test on synthetic data needs no downloads:
 
 ```bash
 cd pipeline

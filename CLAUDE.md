@@ -8,7 +8,7 @@ Two people, both working with Claude Code:
 
 | Area | Owner | Runs on |
 | --- | --- | --- |
-| `pipeline/` (HPC jobs, config, Slurm) | Masha | BlueBEAR cluster, Linux |
+| `pipeline/` (processing steps, config, run scripts) | Masha | Linux machine with the data |
 | `web/src/`, `web/index.html` (story site) | Andrea | laptop, deployed by GitHub Actions |
 | `web/public/data/` (the data contract) | written only by pipeline step 12 | committed by Masha |
 | `tools/`, `docs/`, `.github/`, this file | shared | |
@@ -43,14 +43,14 @@ python tools/check_data.py
 cd web && npm install && npm run dev      # http://localhost:5173
 cd web && npm run build                   # what CI and the deploy run
 
-# pipeline (needs the ashwatch environment; see pipeline/README.md and pipeline/BLUEBEAR.md)
+# pipeline (needs the ashwatch environment; see pipeline/README.md)
 cd pipeline && bash tests/run_synthetic.sh /tmp/aw_test        # whole chain on fake data, 2 to 5 min
-cd pipeline && sbatch --export=ALL,STEPS="10 11 12" slurm/bluebear_process.sbatch
+cd pipeline && bash scripts/run_pipeline.sh 10 11 12            # re-run some steps on the real data
 ```
 
 ## How an update reaches the live site
 
-Masha re-runs steps on the cluster, step 12 writes `web/public/data/`, she runs the checker and pushes. CI
+Masha re-runs steps where the data lives, step 12 writes `web/public/data/`, she runs the checker and pushes. CI
 checks the contract and builds the site; the deploy workflow publishes it to GitHub Pages. The site footer
 shows the export time from `meta.json`. Andrea does nothing unless the contract changed.
 
@@ -64,7 +64,7 @@ place that fetches. Components are in `web/src/components/`.
 ## Pipeline
 
 Steps `pipeline/steps/01..13_*.py` run in order and share `pipeline/ashwatch/`. Raw and intermediate data
-live under `$ASHWATCH_DATA` on the cluster and are never committed. Scripts must keep Unix line endings
+live under `$ASHWATCH_DATA` and are never committed. Scripts must keep Unix line endings
 (`.gitattributes` enforces it). Code style: `ruff`; the pipeline uses long lines (up to about 130 columns), so do not reflow it to 88.
 
 ## For Claude
@@ -76,6 +76,6 @@ live under `$ASHWATCH_DATA` on the cluster and are never committed. Scripts must
 - The project page has a field on AI use: code and data written with AI must say so in text (the README
   does); AI-generated images or video need a visible watermark.
 - No secrets in the repo: Earthdata and CDS credentials stay in `~/.netrc`, `~/.cdsapirc` or environment
-  variables; BlueBEAR site settings stay in `pipeline/slurm/bluebear.local.sh` (ignored).
+  variables.
 - Ask before deleting files, rewriting git history or force-pushing.
 - Write plain English in docs and site copy; cite a source for every factual claim about the fire.

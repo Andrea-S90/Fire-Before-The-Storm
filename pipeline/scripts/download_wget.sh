@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Command-line (wget) route for the downloads, for clusters where you prefer not to use the Python steps.
-# Run from the pipeline/ folder on a node with internet (login or data-transfer node):
+# Command-line (wget) route for the plain file downloads, if you prefer not to use the Python steps.
+# Run from the pipeline/ folder:
 #   bash scripts/download_wget.sh            # all sources that work with plain wget
 #   bash scripts/download_wget.sh nisar      # one source
 # Needs ~/.netrc with Earthdata credentials (scripts/setup_credentials.sh) for nisar and imerg.

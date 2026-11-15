@@ -2,7 +2,7 @@
 """Build a small fake data set (every input type, incl. NISAR-like GCOV HDF5 files) and a config for it.
 
   python tests/make_synthetic.py /tmp/aw_test          # then: bash tests/run_synthetic.sh /tmp/aw_test
-Lets you test the environment and steps 03-12 on the cluster before the real downloads finish.
+Lets you test the environment and steps 03-12 before the real downloads finish.
 """
 import json
 import sys
