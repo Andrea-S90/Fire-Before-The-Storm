@@ -6,6 +6,8 @@ import TownCard from './components/TownCard.jsx'
 import Hindcast from './components/Hindcast.jsx'
 import WindRose from './components/WindRose.jsx'
 import About from './components/About.jsx'
+import Legend from './components/Legend.jsx'
+import Timeline from './components/Timeline.jsx'
 
 export default function App() {
   const [data, setData] = useState(null)
@@ -43,6 +45,7 @@ export default function App() {
     <>
       <MapView data={data} chapter={chapter} selectedId={town.id} onSelectTown={setTownId}
         rain={chapter.panel === 'rain' ? rain : null} />
+      <Timeline meta={data.meta} passDates={data.passDates} chapter={chapter} />
       {import.meta.env.DEV && data.warnings.length > 0 && (
         <div className="dev-banner">
           Data check: {data.warnings.length} problem(s). {data.warnings[0]} Run <code>npm run check:data</code>.
@@ -54,6 +57,7 @@ export default function App() {
             className={`step ${i === active ? 'active' : ''} ${c.panel === 'about' ? 'wide' : ''}`}>
             <h2>{c.title}</h2>
             <p>{c.body}</p>
+            <Legend chapter={c} layers={data.layers} rain={rain} />
             {c.panel === 'towns' && (
               <>
                 <select value={town.id} onChange={(e) => setTownId(e.target.value)} aria-label="Town">

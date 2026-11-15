@@ -35,8 +35,9 @@ export async function loadData() {
     warnings.push(`overlay "${l.id}" has corners outside the AOI and is hidden`)
     return []
   })
+  const passDates = [...new Set(towns.flatMap((t) => t.recovery.map((r) => r.date)))].sort()
   return {
-    meta, layers: goodLayers, towns, windRose, warnings,
+    meta, layers: goodLayers, towns, windRose, warnings, passDates,
     hindcast: { ...hindcast, byId: Object.fromEntries(hindcast.towns.map((t) => [t.id, t])) },
   }
 }

@@ -157,6 +157,8 @@ One scrolling page, problem to solution to the Ávila demo, with a sticky map th
 
 Keep images to our own maps and open satellite data; link the news reports rather than reuse their photos.
 
+**Later, tracked in its own issue (not for the 16:00 submission):** open the story with screenshots of the news headlines about the contaminated water, so the reader sees the event was real before any map appears. Crop to the headline, outlet and date, link each to its article, and leave out the outlets' photos; check each outlet's terms before publishing.
+
 ## Timeline and roles
 
 The mathematician owns the radar and the model on the cluster; the analyst owns the story site, design, slides and video. Shared: the data contract at 17:00 and the hindcast check.
