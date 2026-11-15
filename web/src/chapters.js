@@ -6,8 +6,8 @@
 //   view:      MapLibre camera
 //   time:      periods highlighted on the timeline, as pairs of keys of meta.json "dates"
 //   timeLabel: what the map shows, in words, next to the timeline
-//   news:      news reports as cards: outlet, date, headline, link, a screenshot of the article's first page
-//              (shot: file name in src/assets/news) and the towns it names (a line is drawn to each)
+//   news:      news reports as text cards (outlet, date, headline, link; never their photos or screenshots)
+//              and the towns each names (towns: ids; a line is drawn from the card to each)
 //   explainer: 'sentinel2' | 'nisar', a plain-language card on how that satellite sees the fire
 const AVILA = { center: [-4.66, 40.38], zoom: 9.6 }
 const PRE = ['pre_start', 'fire_start']
@@ -24,12 +24,12 @@ export const chapters = [
       { outlet: 'El Debate', date: '28 July 2026', lang: 'es',
         headline: 'Casavieja, el pueblo abulense que sobrevive a un escenario de guerra sin luz ni agua',
         english: 'During the fire: Casavieja without power or drinking water',
-        shot: 'eldebate', towns: ['casavieja'],
+        towns: ['casavieja'],
         url: 'https://www.eldebate.com/espana/castilla-y-leon/20260728/casavieja-pueblo-abulense-sobrevive-escenario-guerra-luz-agua_444145.html' },
       { outlet: 'Reuters via Devdiscourse', date: '7 October 2026', lang: 'en',
         headline: 'Wildfire ash turns Spanish mountain river black, contaminating water supply',
         english: 'After the first rain: tap water in Piedralaves declared unfit for consumption',
-        shot: 'reuters', towns: ['casavieja', 'piedralaves'],
+        towns: ['casavieja', 'piedralaves'],
         url: 'https://www.devdiscourse.com/article/international/3988408-wildfire-ash-turns-spanish-mountain-river-black-contaminating-water-supply' },
     ] },
   { id: 'fire', title: 'The fire',
