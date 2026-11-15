@@ -201,7 +201,7 @@ def osm(cfg):
   relation["water"="reservoir"]({bb});
   way["landuse"="reservoir"]({bb});
 );
-out geom tags;"""
+out geom;"""     # not "out geom tags": that drops relation members, and with them multipolygon reservoirs
     r = requests.post(cfg["downloads"]["overpass_url"], data={"data": q}, timeout=400, headers=UA)
     r.raise_for_status()
     feats = []
