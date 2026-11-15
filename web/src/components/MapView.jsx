@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react'
 import maplibregl from 'maplibre-gl'
 import { dataUrl, LEVEL_COLOR } from '../data.js'
 
+const STREAM_WIDTH = ['interpolate', ['linear'], ['coalesce', ['get', 'area_km2'], 0], 0, 0.4, 5, 1.2, 100, 3]
+
 const BASEMAP = 'https://tiles.openfreemap.org/styles/positron'
 const levelColor = ['match', ['get', 'overall'], 'high', LEVEL_COLOR.high, 'medium', LEVEL_COLOR.medium,
   'low', LEVEL_COLOR.low, LEVEL_COLOR.unknown]
@@ -34,7 +36,7 @@ function addLayers(map, layers) {
   map.addLayer({ id: 'streams-line', type: 'line', source: 'streams',
     paint: {
       'line-color': '#4d9ac4',   // set per chapter in applyChapter
-      'line-width': ['interpolate', ['linear'], ['coalesce', ['get', 'area_km2'], 0], 0, 0.4, 5, 1.2, 100, 3],
+      'line-width': STREAM_WIDTH,   // set per chapter in applyChapter
     } })
   map.addLayer({ id: 'burned-line', type: 'line', source: 'burned',
     paint: { 'line-color': '#3b2a20', 'line-width': 1.2, 'line-dasharray': [2, 1.5] } })
@@ -53,13 +55,17 @@ function addLayers(map, layers) {
 // debris-flow likelihood at 24 mm/h; segments outside the model's size range have no value
 const STREAM_BY_LIKELIHOOD = ['interpolate', ['linear'], ['coalesce', ['get', 'p24'], 0],
   0, '#4d9ac4', 0.4, '#fdae61', 0.7, '#b2182b']
-// rain dial: red where the trigger is at or below the chosen intensity
-const streamByRain = (rain) => ['case',
-  ['all', ['has', 'trigger_mmh'], ['!=', ['get', 'trigger_mmh'], null], ['<=', ['get', 'trigger_mmh'], rain]],
-  '#b2182b', '#9fb8c8']
+// rain dial: red where the trigger is at or below the chosen intensity. Those are small headwater channels, so
+// they are drawn thicker and on top, or they would be invisible next to the rivers.
+const passed = (rain) =>
+  ['all', ['has', 'trigger_mmh'], ['!=', ['get', 'trigger_mmh'], null], ['<=', ['get', 'trigger_mmh'], rain]]
+const streamByRain = (rain) => ['case', passed(rain), '#b2182b', '#9fb8c8']
+const widthByRain = (rain) => ['case', passed(rain), 2.6, STREAM_WIDTH]
 
 function applyChapter(map, layers, chapter, selectedId, rain) {
   map.setPaintProperty('streams-line', 'line-color', rain == null ? STREAM_BY_LIKELIHOOD : streamByRain(rain))
+  map.setPaintProperty('streams-line', 'line-width', rain == null ? STREAM_WIDTH : widthByRain(rain))
+  map.setLayoutProperty('streams-line', 'line-sort-key', rain == null ? 0 : ['case', passed(rain), 1, 0])
   for (const l of layers) {
     map.setPaintProperty(`ov-${l.id}`, 'raster-opacity', chapter.overlays.includes(l.id) ? 0.85 : 0)
   }
