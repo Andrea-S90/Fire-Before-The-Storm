@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-15T06:47:31+00:00",
+ "generated": "2026-11-15T11:25:07+00:00",
  "config": "avila-2026",
  "aoi_bbox": [
   -5.05,
@@ -18,8 +18,14 @@
   "hindcast_end": "2026-10-08",
   "era5_start": "2026-07-15",
   "era5_end": "2026-10-10",
-  "s2_pre": "[datetime.date(2026, 7, 1), datetime.date(2026, 7, 21)]",
-  "s2_post": "[datetime.date(2026, 8, 7), datetime.date(2026, 8, 31)]"
+  "s2_pre": [
+   "2026-07-01",
+   "2026-07-21"
+  ],
+  "s2_post": [
+   "2026-08-07",
+   "2026-08-31"
+  ]
  },
  "severity": {
   "pre_window": [
@@ -34,105 +40,119 @@
    {
     "key": "087A",
     "pre_dates": 3,
-    "post_dates": 4
+    "post_dates": 4,
+    "scene_median_db": -0.38
    },
    {
     "key": "095D",
     "pre_dates": 3,
-    "post_dates": 4
+    "post_dates": 4,
+    "scene_median_db": -0.22
    },
    {
     "key": "159A",
     "pre_dates": 3,
-    "post_dates": 4
+    "post_dates": 4,
+    "scene_median_db": -0.29
    },
    {
     "key": "023D",
     "pre_dates": 3,
-    "post_dates": 3
+    "post_dates": 3,
+    "scene_median_db": -0.29
    }
   ],
   "fuel": {
    "method": "HV power law fitted on ESA CCI",
-   "a": 5.863374621975687,
-   "b": 0.2024695233342614,
-   "r2": 0.35753067172731606,
+   "a": 5.84004101244696,
+   "b": 0.20010058545308143,
+   "r2": 0.35375854856399264,
    "n": 200000,
-   "saturated_share": 0.0004617130730278975
+   "saturated_share": 0.00044387415884272876
   },
   "severity": {
-   "method": "random forest on NISAR change, labels from Sentinel-2 dNBR",
-   "holdout_accuracy": 0.5771666666666667,
-   "kappa": 0.4365499362569816,
-   "confusion": [
-    [
-     1551,
-     613,
-     701,
-     87
+   "method": "burned where NISAR HV drop and Sentinel-2 dNBR agree; class from dNBR, random forest on NISAR features where dNBR is missing",
+   "burn_dhv_db": -1.0,
+   "burn_dhv_radar_only_db": -2.0,
+   "min_hv_pre_db": -23.0,
+   "min_burn_patch_ha": 5,
+   "perimeter_used": false,
+   "radar_vs_optical": {
+    "agreement": 0.8506148504494404,
+    "kappa": 0.334368871138521,
+    "both_ha": 16562.43,
+    "radar_only_ha": 549.81,
+    "optical_only_ha": 52120.17,
+    "note": "optical-only is mostly summer drying and harvest, not fire"
+   },
+   "radar_class_model": {
+    "holdout_accuracy": 0.6082151409099281,
+    "kappa": 0.4091601746355735,
+    "confusion": [
+     [
+      1937,
+      643,
+      242
+     ],
+     [
+      1128,
+      1827,
+      1074
+     ],
+     [
+      196,
+      971,
+      2840
+     ]
     ],
-    [
-     352,
-     1756,
-     829,
-     134
+    "classes": [
+     "low",
+     "moderate",
+     "high"
     ],
-    [
-     203,
-     339,
-     1808,
-     599
-    ],
-    [
-     124,
-     35,
-     1058,
-     1811
-    ]
-   ],
-   "classes": [
-    "unburned",
-    "low",
-    "moderate",
-    "high"
-   ],
-   "feature_importance": {
-    "dHV": 0.313,
-    "dHH": 0.29,
-    "dHV-dHH": 0.128,
-    "HV_pre": 0.147,
-    "HH_pre": 0.122
+    "n_train": 25335,
+    "feature_importance": {
+     "dHV": 0.178,
+     "dHH": 0.124,
+     "dHV-dHH": 0.103,
+     "HV_pre": 0.362,
+     "HH_pre": 0.234
+    }
+   },
+   "burned_ha_class_from": {
+    "dnbr": 15051.689999999999,
+    "radar": 85.05
    }
   },
   "burned_ha": {
-   "low": 63459.27,
-   "moderate": 110724.48,
-   "high": 33525.09
+   "low": 908.28,
+   "moderate": 9766.619999999999,
+   "high": 4461.84
   }
  },
  "ash": {
-  "total_ash_t_best": 323014.5,
+  "total_ash_t_best": 30828.94921875,
   "total_ash_t": {
-   "p10": 159490.26970731758,
-   "p50": 306024.824315751,
-   "p90": 512775.003133457
+   "p10": 15516.03363268829,
+   "p50": 29664.391824380404,
+   "p90": 48012.784639010286
   },
   "burned_ha_by_class": [
-   63459.27,
-   110724.48,
-   33525.09
+   908.28,
+   9766.619999999999,
+   4461.84
   ],
   "agb_t_by_class": [
-   460277.46875,
-   2290572.5,
-   926677.75
+   15424.7548828125,
+   239479.390625,
+   162323.015625
   ]
  },
  "hydro": {
   "segments": 21807,
   "m1_domain_km2": 455.1732,
-  "p24_max": 0.9958480596542358,
-  "trigger_mmh_min": 9.563091278076172
+  "p24_max": 0.9478316307067871,
+  "trigger_mmh_min": 13.34211254119873
  },
  "wind": {
   "fire_hours": 384,
@@ -145,7 +165,7 @@
   "depth_source": "height above nearest drainage (terrain proxy)",
   "aquifer_source": "uniform (ASSUMPTION)",
   "points": 449,
-  "points_scored_above_0_25": 98
+  "points_scored_above_0_25": 2
  },
  "sources": [
   "NASA-ISRO NISAR L2 GCOV (ASF DAAC)",
