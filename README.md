@@ -2,12 +2,17 @@
 
 **The fire is out. The danger isn't.**
 
+> We're Andrea, a mathematician and student at 42, and Maria, a BI analyst and bioinformatician. Last August
+> we travelled to central Spain to watch the eclipse and ended up watching wildfires instead. By October those
+> same towns were back in the news, this time because autumn rain was washing ash into their drinking water.
+> The fire was out, but the danger wasn't. That's why we built Ash Watch.
+
 Ash Watch is a post-fire warning for drinking water. After a wildfire it tells each town downstream how its
 water could be polluted, by which pathway, and how confident that estimate is. It is built on NASA-ISRO NISAR
 L-band radar, which measures the forest before the fire, the burn through smoke, and the regrowth afterwards.
 
 Project for the [NASA Space Apps Challenge 2026](https://www.spaceappschallenge.org/2026/), challenge
-*Dancing with the SARs*. Team: Andrea Serio and Masha Golikova. Demo case: the Burgohondo fire in Ávila,
+*Dancing with the SARs*. Team: Andrea Serio and Maria Golikova. Demo case: the Burgohondo fire in Ávila,
 Spain (July 2026) and the ash-laden runoff that followed the first autumn rain in October.
 
 ![Fire Before the Storm](media/Lockup%20%C2%B7%20drop%20in%20the%20flame.png)
