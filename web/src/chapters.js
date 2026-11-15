@@ -6,7 +6,7 @@
 //   time:      periods highlighted on the timeline, as pairs of keys of meta.json "dates"
 //   timeLabel: what the map shows, in words, next to the timeline
 //   news:      news reports shown as text cards (outlet, date, headline, link; never their photos)
-//   explainer: 'sentinel2' | 'nisar', a plain-language card on how that satellite sees the fire
+//   explainer: 'sentinel2' | 'nisar' | 'ash', a plain-language card on a satellite or on the ash formula
 const AVILA = { center: [-4.66, 40.38], zoom: 9.6 }
 const PRE = ['pre_start', 'fire_start']
 const POST = ['post_start', 'post_end']
@@ -41,7 +41,8 @@ export const chapters = [
   { id: 'ash', title: 'From forest to ash',
     body: 'Fuel before the fire, times how much burned, times how much of that turns to ash. Every factor is a range, so the result is a range too.',
     view: AVILA, overlays: ['ash'], vectors: ['burned'],
-    time: [PRE, POST], timeLabel: 'ash load, from pre-fire fuel and post-fire severity' },
+    time: [PRE, POST], timeLabel: 'ash load, from pre-fire fuel and post-fire severity',
+    explainer: 'ash' },
   { id: 'pathways', title: 'Four ways ash reaches your tap',
     body: 'Runoff into streams and reservoirs, debris flows from steep burned slopes, seepage to wells and springs, and ash carried by the wind.',
     view: AVILA, overlays: [], vectors: ['burned', 'streams', 'water'], panel: 'wind',

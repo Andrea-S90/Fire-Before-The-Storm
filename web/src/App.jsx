@@ -61,7 +61,7 @@ export default function App() {
             <p>{c.body}</p>
             {c.news && <Headlines items={c.news} />}
             <Legend chapter={c} layers={data.layers} rain={rain} />
-            {c.explainer && <Explainer kind={c.explainer} />}
+            {c.explainer && <Explainer kind={c.explainer} meta={data.meta} />}
             {c.panel === 'towns' && (
               <>
                 <select value={town.id} onChange={(e) => setTownId(e.target.value)} aria-label="Town">

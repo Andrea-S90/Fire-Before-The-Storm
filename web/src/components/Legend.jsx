@@ -19,7 +19,7 @@ const RASTER_NOTE = {
   dhv: 'Red: the radar echo from branches and trunks fell (canopy lost). Blue: it rose.',
   hv_pre: 'Brighter means more woody vegetation.',
   hv_post: 'Brighter means more woody vegetation.',
-  ash: 'Estimated ash left on the ground.',
+  ash: 'Best estimate of ash left on the ground (middle of every range).',
   biomass: 'Wood above ground before the fire, estimated from radar.',
   erosion: 'Where rain is most likely to move soil. Relative scale.',
   gw_vuln: 'How easily surface water reaches groundwater. Screening only.',

@@ -149,7 +149,37 @@ function Nisar() {
   )
 }
 
-export default function Explainer({ kind }) {
+// The ash formula as pipeline/ashwatch/ash.py computes it; totals come from meta.json "ash".
+function Ash({ ash }) {
+  const t = ash?.total_ash_t
+  const k = (v) => `${Math.round(v / 1000)},000`
+  return (
+    <figure className="card explainer">
+      <figcaption><strong>How we estimate the ash</strong></figcaption>
+      <p className="formula">
+        Ash = (B × c<sub>tree</sub> + S × c<sub>surface</sub>) × f
+      </p>
+      <dl className="terms">
+        <dt>B</dt><dd>tree biomass before the fire (t/ha), from NISAR radar calibrated on ESA CCI biomass</dd>
+        <dt>c<sub>tree</sub></dt><dd>share of that biomass burned, larger for higher burn severity</dd>
+        <dt>S</dt><dd>litter, dead wood and undergrowth on the forest floor (t/ha)</dd>
+        <dt>c<sub>surface</sub></dt><dd>share of that surface fuel burned, also by severity</dd>
+        <dt>f</dt><dd>ash left per tonne of fuel burned; one field study measured about 12.5% (Quigley et al., 2019)</dd>
+      </dl>
+      <p className="muted">
+        None of the factors is measured here, so each is a range from the literature (marked as an assumption in
+        our settings). The map colours use the middle of every range: one best estimate per 30 m pixel, in tonnes
+        per hectare. To get the uncertainty we draw every factor at random from its range 5,000 times
+        (Monte Carlo) and keep the 10th to 90th percentile of the result.
+        {t && <> For the whole fire that is {k(t.p10)} to {k(t.p90)} tonnes of ash, most likely
+          about {k(t.p50)}.</>} Each town card shows the same range for the area upstream of it.
+      </p>
+    </figure>
+  )
+}
+
+export default function Explainer({ kind, meta }) {
+  if (kind === 'ash') return <Ash ash={meta?.ash} />
   if (kind === 'sentinel2') {
     return (
       <figure className="card explainer">
