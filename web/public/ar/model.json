@@ -1,0 +1,27 @@
+{
+ "title": "Burgohondo fire area, after the fire",
+ "glb": "burgohondo.glb",
+ "usdz": "burgohondo.usdz",
+ "width_cm": 50.0,
+ "depth_cm": 42.8,
+ "relief_cm": 3.1,
+ "ground_km": [
+  75.9,
+  58.4
+ ],
+ "bbox": [
+  -5.10008,
+  40.11079,
+  -4.20569,
+  40.63906
+ ],
+ "exaggeration": 2.5,
+ "triangles": 139666,
+ "grid": [
+  300,
+  231
+ ],
+ "dem": "Copernicus DEM GLO-30 (AWS open data)",
+ "data_generated": "2026-11-15T11:25:07+00:00",
+ "built": "2026-11-22T14:17:17+00:00"
+}
