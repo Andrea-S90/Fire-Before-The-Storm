@@ -12,6 +12,7 @@ export default function NewsLinks({ map, items, towns, active }) {
     let raf
     const measure = () => {
       const next = []
+      const box = map.getContainer().getBoundingClientRect()   // the map may not start at the top left
       for (const n of items) {
         const card = document.querySelector(`[data-news="${CSS.escape(n.url)}"]`)
         // only for the card under the pointer (or focused with the keyboard)
@@ -20,7 +21,8 @@ export default function NewsLinks({ map, items, towns, active }) {
         for (const id of n.towns ?? []) {
           const t = towns.find((x) => x.id === id)
           if (!t) continue
-          const p = map.project([t.lon, t.lat])
+          const q = map.project([t.lon, t.lat])
+          const p = { x: q.x + box.left, y: q.y + box.top }
           // leave from the card edge that faces the town
           const x1 = p.x >= r.right ? r.right : p.x <= r.left ? r.left : r.left + r.width / 2
           const y1 = x1 === r.left + r.width / 2 ? (p.y < r.top ? r.top : r.bottom) : r.top + r.height / 2
