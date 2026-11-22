@@ -128,7 +128,7 @@ page. The site reads them from [web/src/project.js](web/src/project.js): change 
 - [ISRO: NISAR is a joint NASA-ISRO mission](https://www.isro.gov.in/NISARSatellite.html)
 - [ESA / Copernicus Sentinel-2 L2A, burn severity (dNBR), via the Earth Search STAC catalogue](https://earth-search.aws.element84.com/v1)
 - [ESA CCI Biomass, above-ground biomass used to calibrate the fuel estimate](https://climate.esa.int/en/projects/biomass/)
-- [Copernicus DEM GLO-30, terrain and flow routing](https://registry.opendata.aws/copernicus-dem/)
+- [Copernicus DEM GLO-30, terrain and flow routing, and the relief of the 3D and AR model](https://registry.opendata.aws/copernicus-dem/)
 - [ERA5 hourly wind (Copernicus Climate Change Service)](https://cds.climate.copernicus.eu/)
 - [ISRIC SoilGrids, soil texture and organic carbon for erodibility](https://soilgrids.org/)
 - [OpenStreetMap contributors: towns, reservoirs, wells and springs](https://www.openstreetmap.org/copyright)
@@ -142,6 +142,7 @@ page. The site reads them from [web/src/project.js](web/src/project.js): change 
 - [El Debate (28 Jul 2026), Casavieja without power or drinking water during the fire](https://www.eldebate.com/espana/castilla-y-leon/20260728/casavieja-pueblo-abulense-sobrevive-escenario-guerra-luz-agua_444145.html)
 - [Key and Benson (2006), the Normalized Burn Ratio and its severity classes (USDA Forest Service, FIREMON)](https://research.fs.usda.gov/treesearch/24066)
 - [MapLibre GL JS](https://maplibre.org/)
+- [model-viewer (Google), the 3D and AR viewer](https://modelviewer.dev/)
 - [OpenFreeMap basemap (OpenMapTiles, OpenStreetMap)](https://openfreemap.org/)
 
 ### Use of AI
