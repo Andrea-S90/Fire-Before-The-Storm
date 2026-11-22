@@ -146,6 +146,8 @@ export default function MapView({ data, chapter, selectedId, onSelectTown, rain,
     if (import.meta.env.DEV) window.__map = map
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right')
     map.on('load', () => {
+      // on a phone start with the map credits folded into the (i) button: open, they cover the cards
+      if (isNarrow()) el.current.querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show')
       addLayers(map, data.layers)
       ready.current = true
       applyChapter(map, data.layers, latest.current.chapter, latest.current.selectedId)
