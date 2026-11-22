@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { loadData } from './data.js'
 import { chapters } from './chapters.js'
+import { useNarrow } from './useNarrow.js'
 import MapView from './components/MapView.jsx'
 import TownCard from './components/TownCard.jsx'
 import Hindcast from './components/Hindcast.jsx'
@@ -21,18 +22,20 @@ export default function App() {
   const [rain, setRain] = useState(24)
   const [map, setMap] = useState(null)
   const stepRefs = useRef([])
+  const narrow = useNarrow()
 
   useEffect(() => { loadData().then(setData, (e) => setError(String(e))) }, [])
 
-  // scroll-driven chapters: the step crossing the middle of the screen is active
+  // scroll-driven chapters: the step crossing a line across the reading area is active.
+  // Desktop: the middle of the screen. Phone: just under the map band, where the text pane starts.
   useEffect(() => {
     if (!data) return
     const io = new IntersectionObserver(
       (entries) => entries.forEach((en) => en.isIntersecting && setActive(Number(en.target.dataset.i))),
-      { rootMargin: '-45% 0px -45% 0px' })
+      { rootMargin: narrow ? '-62% 0px -36% 0px' : '-45% 0px -45% 0px' })
     stepRefs.current.forEach((el) => el && io.observe(el))
     return () => io.disconnect()
-  }, [data])
+  }, [data, narrow])
 
   if (error) return <p className="fatal">Could not load the data files: {error}</p>
   if (!data) return <p className="fatal">Loading…</p>
@@ -43,7 +46,9 @@ export default function App() {
   const goTo = (i) => {
     if (i < 0 || i >= chapters.length) return
     setActive(i)   // the map reacts at once; the scroll observer confirms when the step arrives
-    stepRefs.current[i]?.scrollIntoView({ behavior: 'smooth', block: i === chapters.length - 1 ? 'start' : 'center' })
+    // on a phone the step's top goes just under the map (scroll-margin-top in styles.css)
+    const block = narrow || i === chapters.length - 1 ? 'start' : 'center'
+    stepRefs.current[i]?.scrollIntoView({ behavior: 'smooth', block })
   }
 
   return (

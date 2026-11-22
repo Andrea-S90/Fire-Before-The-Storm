@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import maplibregl from 'maplibre-gl'
 import { dataUrl, LEVEL_COLOR, fmt } from '../data.js'
+import { isNarrow } from '../useNarrow.js'
 // Reference outlines, not pipeline data: the municipalities the news reports name (OpenStreetMap, ODbL).
 import municipalitiesUrl from '../assets/municipalities.geojson?url'
 
@@ -119,6 +120,10 @@ function popupHtml(t) {
   </div>`
 }
 
+// chapter cameras are framed for a full-screen desktop map; the phone map band is far smaller,
+// so pull back one zoom level there to keep the same area in view
+const fit = (view) => (isNarrow() ? { ...view, zoom: view.zoom - 1 } : view)
+
 export default function MapView({ data, chapter, selectedId, onSelectTown, rain, onMap }) {
   const el = useRef(null)
   const mapRef = useRef(null)
@@ -130,7 +135,7 @@ export default function MapView({ data, chapter, selectedId, onSelectTown, rain,
 
   useEffect(() => {
     const map = new maplibregl.Map({
-      container: el.current, style: BASEMAP, ...chapter.view, attributionControl: { compact: true },
+      container: el.current, style: BASEMAP, ...fit(chapter.view), attributionControl: { compact: true },
       // the wheel (and one finger on a phone) scrolls the story; Ctrl + wheel or two fingers zoom the map
       cooperativeGestures: true,
     })
@@ -174,7 +179,7 @@ export default function MapView({ data, chapter, selectedId, onSelectTown, rain,
   }, [rain])
 
   useEffect(() => {
-    mapRef.current?.flyTo({ ...chapter.view, duration: 1200 })
+    mapRef.current?.flyTo({ ...fit(chapter.view), duration: 1200 })
     if (!chapter.vectors.includes('towns')) popupRef.current?.remove()
   }, [chapter])
 

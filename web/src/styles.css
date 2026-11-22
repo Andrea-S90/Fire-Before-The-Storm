@@ -84,7 +84,6 @@ footer { color: var(--muted); font-size: 0.75rem; padding: 0 0 70px; pointer-eve
 .story { padding-top: 90px; }
 @media (max-width: 640px) { .tl-report-label { display: none; } .timeline { padding: 6px 16px 4px; } .tl-now, .tl-key { margin: 0 0 2px; } }
 
-@media (max-width: 640px) { .step { justify-content: flex-end; padding-bottom: 12vh; } }
 
 /* news headlines and satellite explainers */
 .headlines { display: grid; gap: 8px; margin-top: 10px; }
@@ -132,3 +131,20 @@ footer { color: var(--muted); font-size: 0.75rem; padding: 0 0 70px; pointer-eve
 .how ul { margin: 4px 0 0; padding-left: 18px; }
 .how .ha-bars { display: grid; gap: 4px; margin-top: 8px; font-size: 0.78rem; }
 .how .ha-bar { height: 10px; border-radius: 3px; }
+
+/* phone layout: map in a band under the timeline, story scrolls in the pane below it, never over the map.
+   Keep the breakpoint in step with NARROW in src/useNarrow.js. */
+@media (max-width: 640px) {
+  :root { --tl-h: 96px; --map-h: 42svh; --pane-top: calc(var(--tl-h) + var(--map-h)); }
+  .timeline { z-index: 4; }
+  .map { top: var(--tl-h); bottom: auto; height: var(--map-h); z-index: 3; border-bottom: 1px solid var(--line);
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.12); }
+  .news-links { z-index: 3; }
+  .story { width: 100%; padding-top: calc(var(--pane-top) + 12px); }
+  .step { min-height: calc(100svh - var(--pane-top)); justify-content: flex-start; padding: 12px 0 24px;
+    scroll-margin-top: calc(var(--pane-top) + 8px); }
+  .step.wide { width: 100%; padding: 12px 0 24px; }
+  .step h2 { font-size: 1.25rem; }
+  .pager { bottom: max(10px, env(safe-area-inset-bottom)); }
+  .pager button { padding: 10px 16px; }   /* at least 40px tall: an easy thumb target */
+}
