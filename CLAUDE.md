@@ -43,6 +43,9 @@ python tools/check_data.py
 cd web && npm install && npm run dev      # http://localhost:5173
 cd web && npm run build                   # what CI and the deploy run
 
+# 3D/AR model of the fire area (web/public/ar/, not part of the data contract); needs uv, downloads the DEM once
+uv run tools/build_ar_model.py
+
 # pipeline (needs the ashwatch environment; see pipeline/README.md)
 cd pipeline && bash tests/run_synthetic.sh /tmp/aw_test        # whole chain on fake data, 2 to 5 min
 cd pipeline && bash scripts/run_pipeline.sh 10 11 12            # re-run some steps on the real data
@@ -53,6 +56,8 @@ cd pipeline && bash scripts/run_pipeline.sh 10 11 12            # re-run some st
 Masha re-runs steps where the data lives, step 12 writes `web/public/data/`, she runs the checker and pushes. CI
 checks the contract and builds the site; the deploy workflow publishes it to GitHub Pages. The site footer
 shows the export time from `meta.json`. Andrea does nothing unless the contract changed.
+The 3D/AR model in `web/public/ar/` does not follow re-exports: after one that changes the severity map, the
+burned area, the streams or the town levels, re-run `uv run tools/build_ar_model.py` and commit its output.
 
 ## Site
 
