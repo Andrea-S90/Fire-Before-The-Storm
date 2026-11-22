@@ -179,15 +179,16 @@ function applyTerrain(map, is3d) {
   map.setLayoutProperty('hillshade', 'visibility', is3d ? 'visible' : 'none')
 }
 
-// A 2D / 3D button in the map's control stack. Turning 3D off also flattens the camera.
-class TerrainControl {
-  constructor(get, set) { this.get = get; this.set = set }
+// A one-button control in the map's stack (bottom right): the 2D / 3D switch and the rotation on/off.
+// look(on) gives the button's text, tooltip and whether it is usable.
+class ButtonControl {
+  constructor(className, look, get, set) { Object.assign(this, { className, look, get, set }) }
   onAdd() {
     this.el = document.createElement('div')
     this.el.className = 'maplibregl-ctrl maplibregl-ctrl-group'
     this.btn = document.createElement('button')
     this.btn.type = 'button'
-    this.btn.className = 'terrain-toggle'
+    this.btn.className = this.className
     this.btn.addEventListener('click', () => this.set(!this.get()))
     this.el.appendChild(this.btn)
     this.update()
@@ -195,9 +196,12 @@ class TerrainControl {
   }
   update() {
     const on = this.get()
-    this.btn.textContent = on ? '2D' : '3D'
-    this.btn.title = on ? 'Flat map' : 'Show terrain in 3D'
-    this.btn.setAttribute('aria-label', this.btn.title)
+    const { text, title, disabled = false, pressed } = this.look(on)
+    this.btn.textContent = text
+    this.btn.title = title
+    this.btn.disabled = disabled
+    this.btn.setAttribute('aria-label', title)
+    if (pressed != null) this.btn.setAttribute('aria-pressed', String(pressed))
   }
   onRemove() { this.el.remove() }
 }
@@ -226,15 +230,30 @@ export default function MapView({ data, chapter, selectedId, onSelectTown, rain,
     popupRef.current = popup
     if (import.meta.env.DEV) window.__map = map
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right')
-    const terrainCtrl = new TerrainControl(() => is3d.current, (on) => {
-      is3d.current = on
-      terrainCtrl.update()
-      if (!ready.current) return
-      spin.current = false   // the 2D/3D button counts as touching the map
-      applyTerrain(map, on)
-      map.easeTo({ ...fit(latest.current.chapter.view, on, false), duration: 800 })
-    })
+    // rotation on/off; any other touch of the map turns it off too, and this button turns it back on
+    const spinCtrl = new ButtonControl('map-toggle spin-toggle',
+      (on) => (is3d.current
+        ? { text: '⟳', title: on ? 'Stop rotating the map' : 'Rotate the map', pressed: on }
+        : { text: '⟳', title: 'Rotation needs the 3D view', pressed: false, disabled: true }),
+      () => spin.current, (on) => setSpin(on))
+    const setSpin = (on) => {
+      if (spin.current === on) return
+      spin.current = on
+      spinCtrl.update()
+    }
+    const terrainCtrl = new ButtonControl('map-toggle',
+      (on) => ({ text: on ? '2D' : '3D', title: on ? 'Flat map' : 'Show terrain in 3D' }),
+      () => is3d.current, (on) => {
+        is3d.current = on
+        terrainCtrl.update()
+        setSpin(false)   // the 2D/3D button counts as touching the map
+        spinCtrl.update()
+        if (!ready.current) return
+        applyTerrain(map, on)
+        map.easeTo({ ...fit(latest.current.chapter.view, on, false), duration: 800 })
+      })
     map.addControl(terrainCtrl, 'bottom-right')
+    map.addControl(spinCtrl, 'bottom-right')
     map.on('load', () => {
       // on a phone start with the map credits folded into the (i) button: open, they cover the cards
       if (isNarrow()) el.current.querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show')
@@ -254,9 +273,9 @@ export default function MapView({ data, chapter, selectedId, onSelectTown, rain,
       if (t) popup.setLngLat(f.geometry.coordinates).setHTML(popupHtml(t)).addTo(map)
     })
     // only gestures and buttons carry an originalEvent; the story's own flyTo does not
-    const stopSpin = (e) => { if (e.originalEvent) spin.current = false }
+    const stopSpin = (e) => { if (e.originalEvent) setSpin(false) }
     for (const ev of ['dragstart', 'zoomstart', 'rotatestart', 'pitchstart']) map.on(ev, stopSpin)
-    map.on('click', () => { spin.current = false })
+    map.on('click', () => setSpin(false))
     let last = null, raf = 0
     const tick = (t) => {
       raf = requestAnimationFrame(tick)
