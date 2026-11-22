@@ -24,8 +24,8 @@ const DEM = {
   tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
   attribution: '<a href="https://registry.opendata.aws/terrain-tiles/">Terrain Tiles</a> (Mapzen, AWS)',
 }
-// The Gredos relief reads true at about 1.5x; more starts to look like a cartoon.
-const EXAGGERATION = 1.5
+// Vertical exaggeration, not to scale: 2.5x makes the valleys and burned slopes stand out at the story's zoom.
+const EXAGGERATION = 2.5
 // Elevation tiles are only fetched this many degrees around the study area (the overlays' extent): enough for a
 // tilted, rotating camera, without loading the whole horizon.
 const DEM_PAD = 0.6
@@ -172,8 +172,6 @@ const fit = (view, is3d, spinning) => {
     : { ...v, padding: { top: 0, bottom: 0, left: 0, right: 0 } }
 }
 
-const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
 function applyTerrain(map, is3d) {
   map.setTerrain(is3d ? { source: 'dem', exaggeration: EXAGGERATION } : null)
   map.setLayoutProperty('hillshade', 'visibility', is3d ? 'visible' : 'none')
@@ -213,8 +211,9 @@ export default function MapView({ data, chapter, selectedId, onSelectTown, rain,
   const popupRef = useRef(null)
   const streams = useRef([])   // [stream id, trigger mm/h or Infinity] for every segment
   const is3d = useRef(true)
-  // turns the camera slowly until the visitor drags, zooms, rotates, tilts or clicks the map; then it stays put
-  const spin = useRef(!reducedMotion())
+  // turns the camera slowly from the start, on every device, until the visitor drags, zooms, rotates, tilts or
+  // clicks the map; the rotate button (bottom right) stops and restarts it
+  const spin = useRef(true)
   const latest = useRef({ chapter, selectedId, rain })
   latest.current = { chapter, selectedId, rain }
 
