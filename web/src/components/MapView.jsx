@@ -120,9 +120,22 @@ function popupHtml(t) {
   </div>`
 }
 
-// chapter cameras are framed for a full-screen desktop map; the phone map band is far smaller,
+// Phone: the section card is parked at the top of the screen (App.jsx, goTo), so centre the map in the
+// open part below it: pad the camera by the timeline plus the card, capped so a card with 'More' open
+// still leaves the map some room, and by the pager at the bottom.
+function phonePadding() {
+  const step = document.querySelector('.step.active')
+  const title = step?.querySelector('h2')
+  const timeline = document.querySelector('.timeline')?.offsetHeight ?? 0
+  const card = step && title ? step.getBoundingClientRect().bottom - title.getBoundingClientRect().top : 0
+  return { top: Math.round(Math.min(timeline + 12 + card, window.innerHeight * 0.6)), bottom: 60, left: 0, right: 0 }
+}
+
+// chapter cameras are framed for a full-screen desktop map; the open map area on a phone is far smaller,
 // so pull back one zoom level there to keep the same area in view
-const fit = (view) => (isNarrow() ? { ...view, zoom: view.zoom - 1 } : view)
+const fit = (view) => (isNarrow()
+  ? { ...view, zoom: view.zoom - 1, padding: phonePadding() }
+  : { ...view, padding: { top: 0, bottom: 0, left: 0, right: 0 } })
 
 export default function MapView({ data, chapter, selectedId, onSelectTown, rain, onMap }) {
   const el = useRef(null)
