@@ -1,4 +1,5 @@
 import { project } from '../project.js'
+import ARView from './ARView.jsx'
 
 const LinkList = ({ items }) => (
   <ul>
@@ -22,6 +23,10 @@ export default function About({ generated }) {
 
       <h4>Links</h4>
       <LinkList items={main} />
+
+      <h4>See it in 3D</h4>
+      <p>Turn the fire area on screen, or place it on your desk or floor from a phone.</p>
+      <ARView />
 
       <h4>Project description</h4>
       {project.description.map((p) => <p key={p.slice(0, 24)}>{p}</p>)}

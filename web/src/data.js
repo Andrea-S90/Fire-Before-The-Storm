@@ -45,3 +45,15 @@ export async function loadData() {
 export const LEVEL_COLOR = { high: '#b2182b', medium: '#ef8a62', low: '#4d9ac4', unknown: '#9a9a9a', none: '#9a9a9a' }
 export const fmt = (v, digits = 0) =>
   v == null || !Number.isFinite(v) ? 'n/a' : v.toLocaleString('en-GB', { maximumFractionDigits: digits })
+
+// The 3D/AR model of the fire area, built by tools/build_ar_model.py into public/ar/. Not part of the data
+// contract (pipeline step 12 never writes it). null when the model has not been built.
+export const arUrl = (name) => `${import.meta.env.BASE_URL}ar/${name}`
+export async function loadArModel() {
+  try {
+    const r = await fetch(arUrl('model.json'))
+    return r.ok ? await r.json() : null
+  } catch {
+    return null   // missing file, or the dev server's index.html fallback
+  }
+}

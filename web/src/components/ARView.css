@@ -1,0 +1,28 @@
+/* "View in AR" (ARView.jsx). Kept apart from styles.css so this feature can be changed on its own. */
+.ar-open { display: block; width: 100%; margin: 6px 0 2px; font: inherit; font-size: 0.9rem; font-weight: 600;
+  border: 0; border-radius: 99px; padding: 10px 16px; background: var(--ink); color: #fff; cursor: pointer; }
+.ar-open:hover { background: #3a332e; }
+
+.ar-dialog { width: min(960px, calc(100vw - 32px)); max-height: calc(100svh - 32px); padding: 0; border: 1px solid var(--line);
+  border-radius: 12px; background: var(--paper); color: var(--ink); display: none; flex-direction: column; overflow: hidden; }
+.ar-dialog[open] { display: flex; }
+.ar-dialog::backdrop { background: rgb(28 25 23 / 0.55); }
+.ar-dialog header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px 10px 16px;
+  border-bottom: 1px solid var(--line); }
+.ar-close { font: 600 22px/1 system-ui, sans-serif; width: 40px; height: 40px; border: 0; border-radius: 99px;
+  background: transparent; color: var(--ink); cursor: pointer; }
+.ar-close:hover { background: var(--line); }
+
+.ar-stage { position: relative; height: min(62svh, 560px); background: linear-gradient(#f4f1ea, #e6e0d5); }
+.ar-stage model-viewer { width: 100%; height: 100%; --poster-color: transparent; }
+.ar-msg { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 16px; text-align: center; color: var(--muted); }
+.ar-place { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); font: inherit; font-weight: 600;
+  border: 0; border-radius: 99px; padding: 12px 20px; background: var(--ink); color: #fff; cursor: pointer;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.25); white-space: nowrap; }
+
+.ar-note { margin: 0; padding: 10px 16px 14px; font-size: 0.88rem; color: var(--muted); }
+
+@media (max-width: 640px) {   /* same as NARROW in useNarrow.js */
+  .ar-dialog { width: 100vw; max-width: 100vw; height: 100svh; max-height: 100svh; border-radius: 0; border: 0; }
+  .ar-stage { flex: 1; height: auto; }
+}
