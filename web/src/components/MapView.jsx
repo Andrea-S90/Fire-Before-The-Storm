@@ -29,6 +29,24 @@ const EXAGGERATION = 2.5
 // Elevation tiles are only fetched this many degrees around the study area (the overlays' extent): enough for a
 // tilted, rotating camera, without loading the whole horizon.
 const DEM_PAD = 0.6
+// Satellite basemap: EOX Sentinel-2 cloudless, the 2016 mosaic (CC BY 4.0; later years are CC BY-NC-SA). It is
+// years older than the fire, so the map says so whenever it is on. 10 m pixels: no sharper tiles past zoom 14,
+// and like the DEM it is only fetched around the study area, wider so the tilted views rarely reach its edge.
+const SATELLITE = {
+  type: 'raster', tileSize: 256, maxzoom: 14,
+  tiles: ['https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg'],
+  attribution: '<a href="https://s2maps.eu">Sentinel-2 cloudless</a> by EOX (modified Copernicus Sentinel data 2016, ' +
+    '<a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>)',
+}
+const SAT_PAD = 2.5
+const SAT_NOTE = 'Satellite basemap, before the fire (Sentinel-2, 2016)'
+const SAT_KEY = 'ashwatch-basemap'
+function savedSatellite() {
+  try { return sessionStorage.getItem(SAT_KEY) === 'satellite' } catch { return false }
+}
+function saveSatellite(on) {
+  try { sessionStorage.setItem(SAT_KEY, on ? 'satellite' : 'map') } catch { /* private mode: not remembered */ }
+}
 // Auto-rotation while the story scrolls, until the visitor touches the map: one full turn in about 3 minutes.
 const SPIN_DEG_PER_S = 2
 const levelColor = ['match', ['get', 'overall'], 'high', LEVEL_COLOR.high, 'medium', LEVEL_COLOR.medium,
@@ -46,11 +64,11 @@ const VECTORS = {
 
 export const REPORTED = '#f2b705'
 
-function demBounds(layers) {
+function demBounds(layers, pad = DEM_PAD) {
   const pts = layers.flatMap((l) => l.coordinates)
   if (!pts.length) return undefined
   const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1])
-  return [Math.min(...xs) - DEM_PAD, Math.min(...ys) - DEM_PAD, Math.max(...xs) + DEM_PAD, Math.max(...ys) + DEM_PAD]
+  return [Math.min(...xs) - pad, Math.min(...ys) - pad, Math.max(...xs) + pad, Math.max(...ys) + pad]
 }
 
 function addLayers(map, layers) {
@@ -60,6 +78,11 @@ function addLayers(map, layers) {
   const bounds = demBounds(layers)
   map.addSource('dem', { ...DEM, bounds })
   map.addSource('dem-shade', { ...DEM, tileSize: 512, bounds })
+  // the imagery sits above Positron's land and roads but below its place names, the hillshade and our layers
+  map.addSource('satellite', { ...SATELLITE, bounds: demBounds(layers, SAT_PAD) })
+  map.addLayer({ id: 'satellite', type: 'raster', source: 'satellite', layout: { visibility: 'none' },
+    // a little paler, so the red and orange of our layers stand out from the brown hills
+    paint: { 'raster-fade-duration': 150, 'raster-saturation': -0.35 } }, map.getStyle().layers.find((l) => l.type === 'symbol')?.id)
   map.addLayer({ id: 'hillshade', type: 'hillshade', source: 'dem-shade',
     layout: { visibility: 'none' },
     paint: { 'hillshade-exaggeration': 0.35, 'hillshade-shadow-color': '#5b5048' } })
@@ -194,6 +217,28 @@ function applyTerrain(map, is3d) {
   map.setLayoutProperty('hillshade', 'visibility', is3d ? 'visible' : 'none')
 }
 
+function applyBasemap(map, sat) {
+  map.setLayoutProperty('satellite', 'visibility', sat ? 'visible' : 'none')
+  // the dark dashed burn outline vanishes on the imagery: white there
+  map.setPaintProperty('burned-line', 'line-color', sat ? '#fff' : '#3b2a20')
+  map.setPaintProperty('burned-line', 'line-width', sat ? 1.1 : 1.2)
+  map.setPaintProperty('burned-line', 'line-opacity', sat ? 0.8 : 1)
+  // the rain dial's red segments are thin headwater channels that sink into the brown hills: thicker there
+  map.setPaintProperty('streams-line', 'line-width', ['case', PASSED, sat ? 3.6 : 2.6, STREAM_WIDTH])
+}
+
+// The note next to the buttons while the satellite basemap is on, so nobody reads the imagery as the burn scar
+class NoteControl {
+  onAdd() {
+    this.el = document.createElement('div')
+    this.el.className = 'maplibregl-ctrl map-note'
+    this.el.textContent = SAT_NOTE
+    return this.el
+  }
+  show(on) { this.el.hidden = !on }
+  onRemove() { this.el.remove() }
+}
+
 // A one-button control in the map's stack (bottom right): the 2D / 3D switch and the rotation on/off.
 // look(on) gives the button's text, tooltip and whether it is usable.
 class ButtonControl {
@@ -231,6 +276,7 @@ export default function MapView({ data, chapter, selectedId, onSelectTown, rain,
   // turns the camera slowly from the start, on every device, until the visitor drags, zooms, rotates, tilts or
   // clicks the map; the rotate button (bottom right) stops and restarts it
   const spin = useRef(true)
+  const sat = useRef(savedSatellite())   // satellite basemap on, remembered for the visit
   const latest = useRef({ chapter, selectedId, rain })
   latest.current = { chapter, selectedId, rain }
 
@@ -268,13 +314,27 @@ export default function MapView({ data, chapter, selectedId, onSelectTown, rain,
         applyTerrain(map, on)
         map.easeTo({ ...fit(latest.current.chapter.view, on, false), duration: 800 })
       })
+    const satNote = new NoteControl()
+    const satCtrl = new ButtonControl('map-toggle',
+      (on) => ({ text: on ? 'Map' : 'Sat', title: on ? 'Back to the plain map' : 'Show satellite imagery (Sentinel-2, 2016: before the fire)', pressed: on }),
+      () => sat.current, (on) => {
+        sat.current = on
+        saveSatellite(on)
+        satCtrl.update()
+        satNote.show(on)
+        if (ready.current) applyBasemap(map, on)
+      })
     map.addControl(terrainCtrl, 'bottom-right')
     map.addControl(spinCtrl, 'bottom-right')
+    map.addControl(satCtrl, 'bottom-right')
+    map.addControl(satNote, 'bottom-right')
+    satNote.show(sat.current)
     map.on('load', () => {
       // on a phone start with the map credits folded into the (i) button: open, they cover the cards
       if (isNarrow()) el.current.querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show')
       addLayers(map, data.layers)
       applyTerrain(map, is3d.current)
+      applyBasemap(map, sat.current)
       ready.current = true
       applyChapter(map, data.layers, latest.current.chapter, latest.current.selectedId)
       map.getSource('streams').getData().then((fc) => {
