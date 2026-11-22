@@ -63,9 +63,10 @@ export default function App() {
     const el = stepRefs.current[i]
     if (!el) return
     if (narrow) {
-      // on a phone bring the card to just under mid-screen, with the map in full above it
+      // on a phone park the card at the top, just under the timeline, with the map open below it
       const card = el.querySelector('h2')
-      window.scrollTo({ top: card.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.45, behavior: 'smooth' })
+      const below = (document.querySelector('.timeline')?.offsetHeight ?? 0) + 12
+      window.scrollTo({ top: card.getBoundingClientRect().top + window.scrollY - below, behavior: 'smooth' })
       return
     }
     el.scrollIntoView({ behavior: 'smooth', block: i === chapters.length - 1 ? 'start' : 'center' })
