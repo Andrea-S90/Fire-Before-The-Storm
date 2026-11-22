@@ -161,6 +161,23 @@ function phonePadding() {
   return { top: Math.round(Math.min(timeline + 12 + card, window.innerHeight * 0.6)), bottom: 60, left: 0, right: 0 }
 }
 
+// Laptop: the story column covers the left of the map, so centre the map in the open part to its right
+// (the active card's right edge, wide cards included, capped at half the screen) and below the timeline.
+function desktopPadding() {
+  const step = document.querySelector('.step.active')
+  const right = step ? step.getBoundingClientRect().right : document.querySelector('.story')?.getBoundingClientRect().right ?? 0
+  const timeline = document.querySelector('.timeline')?.offsetHeight ?? 0
+  return { top: timeline, bottom: 0, left: Math.round(Math.min(Math.max(right, 0), window.innerWidth * 0.5)), right: 0 }
+}
+
+// the chapter cameras were framed for the full width, so zoom out by the share the story column covers
+// (about half a level on a laptop) to keep the same area in view
+function desktopFit(v) {
+  const padding = desktopPadding()
+  const open = Math.max(window.innerWidth - padding.left, 1) / window.innerWidth
+  return { ...v, zoom: v.zoom + Math.log2(open), padding }
+}
+
 // chapter cameras are framed for a full-screen desktop map; the open map area on a phone is far smaller,
 // so pull back one zoom level there to keep the same area in view
 const fit = (view, is3d, spinning) => {
@@ -169,7 +186,7 @@ const fit = (view, is3d, spinning) => {
   if (spinning) delete v.bearing   // keep turning from where the camera is, no snap back to north
   return isNarrow()
     ? { ...v, zoom: v.zoom - 1, padding: phonePadding() }
-    : { ...v, padding: { top: 0, bottom: 0, left: 0, right: 0 } }
+    : desktopFit(v)
 }
 
 function applyTerrain(map, is3d) {
