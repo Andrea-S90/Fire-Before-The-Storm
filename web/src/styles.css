@@ -107,7 +107,10 @@ footer { color: var(--muted); font-size: 0.75rem; padding: 0 0 70px; pointer-eve
 .story { z-index: 2; }
 
 /* town popup: the data behind a dot's colour */
-.maplibregl-ctrl button.terrain-toggle { font: 600 12px/29px system-ui, sans-serif; color: var(--ink); }
+.maplibregl-ctrl button.map-toggle { font: 600 12px/29px system-ui, sans-serif; color: var(--ink); }
+.maplibregl-ctrl button.spin-toggle { font-size: 17px; }
+.maplibregl-ctrl button.spin-toggle[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.maplibregl-ctrl button.spin-toggle:disabled { color: #b5aea5; }
 .town-popup .maplibregl-popup-content { padding: 10px 12px; border-radius: 10px; font: inherit; }
 .pp header { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-right: 14px; }
 .pp strong { font-size: 1rem; }
@@ -133,19 +136,38 @@ footer { color: var(--muted); font-size: 0.75rem; padding: 0 0 70px; pointer-eve
 .how .ha-bars { display: grid; gap: 4px; margin-top: 8px; font-size: 0.78rem; }
 .how .ha-bar { height: 10px; border-radius: 3px; }
 
-/* phone layout: map in a band under the timeline, story scrolls in the pane below it, never over the map.
-   Keep the breakpoint in step with NARROW in src/useNarrow.js. */
+/* phone layout: the map stays full screen; each section is a short card with a gap of open map before it,
+   and the reading extras fold into 'More'. Keep the breakpoint in step with NARROW in src/useNarrow.js. */
+.legend-chip, .more summary { display: none; }
 @media (max-width: 640px) {
-  :root { --tl-h: 96px; --map-h: 42svh; --pane-top: calc(var(--tl-h) + var(--map-h)); }
-  .timeline { z-index: 4; }
-  .map { top: var(--tl-h); bottom: auto; height: var(--map-h); z-index: 3; border-bottom: 1px solid var(--line);
-    box-shadow: 0 2px 8px rgb(0 0 0 / 0.12); }
-  .news-links { z-index: 3; }
-  .story { width: 100%; padding-top: calc(var(--pane-top) + 12px); }
-  .step { min-height: calc(100svh - var(--pane-top)); justify-content: flex-start; padding: 12px 0 24px;
-    scroll-margin-top: calc(var(--pane-top) + 8px); }
-  .step.wide { width: 100%; padding: 12px 0 24px; }
+  :root { --tl-h: 96px; }
+  .story { width: 100%; padding-top: calc(var(--tl-h) + 12px); }
+  .step { min-height: 0; justify-content: flex-start; padding: 0 0 12px; }
+  .step::before { content: ''; flex: none; height: 62svh; }   /* the gap where the map shows in full */
+  .step:first-child::before { height: 0; }
+  .step.wide { width: 100%; padding: 0 0 12px; }
   .step h2 { font-size: 1.25rem; }
+  .step:not(.active) { opacity: 0.6; }
+
+  .more { padding: 0; }
+  .more summary { display: block; cursor: pointer; padding: 10px 16px; font-size: 0.9rem; font-weight: 600; list-style: none; }
+  .more summary::-webkit-details-marker { display: none; }
+  .more summary::after { content: ' \25BE'; color: var(--muted); }
+  .more[open] summary::after { content: ' \25B4'; }
+  .more > div { padding: 0 10px 10px; }
+  .more > div > :first-child { margin-top: 0; }
+
+  /* bottom left, above the pager: clear of the cards as they arrive, and it opens upwards */
+  .legend-chip { display: block; position: fixed; z-index: 3; bottom: calc(max(10px, env(safe-area-inset-bottom)) + 58px); left: 8px;
+    max-width: min(300px, calc(100vw - 16px)); max-height: 50svh; overflow: auto; background: var(--paper);
+    border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 2px 8px rgb(0 0 0 / 0.15); font-size: 0.85rem; }
+  .legend-chip summary { display: block; cursor: pointer; padding: 6px 12px; font-weight: 600; list-style: none; }
+  .legend-chip summary::-webkit-details-marker { display: none; }
+  .legend-chip summary::after { content: ' \25BE'; color: var(--muted); }
+  .legend-chip[open] summary::after { content: ' \25B4'; }
+  .legend-chip .legend { margin: 0; border: 0; border-top: 1px solid var(--line); border-radius: 0 0 10px 10px; }
+
   .pager { bottom: max(10px, env(safe-area-inset-bottom)); }
   .pager button { padding: 10px 16px; }   /* at least 40px tall: an easy thumb target */
+  .maplibregl-ctrl-bottom-right { bottom: 58px; }   /* zoom buttons and credits above the pager */
 }

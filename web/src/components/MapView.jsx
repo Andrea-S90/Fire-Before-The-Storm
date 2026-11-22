@@ -24,8 +24,8 @@ const DEM = {
   tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
   attribution: '<a href="https://registry.opendata.aws/terrain-tiles/">Terrain Tiles</a> (Mapzen, AWS)',
 }
-// The Gredos relief reads true at about 1.5x; more starts to look like a cartoon.
-const EXAGGERATION = 1.5
+// Vertical exaggeration, not to scale: 2.5x makes the valleys and burned slopes stand out at the story's zoom.
+const EXAGGERATION = 2.5
 // Elevation tiles are only fetched this many degrees around the study area (the overlays' extent): enough for a
 // tilted, rotating camera, without loading the whole horizon.
 const DEM_PAD = 0.6
@@ -150,31 +150,60 @@ function popupHtml(t) {
   </div>`
 }
 
-// chapter cameras are framed for a full-screen desktop map; the phone map band is far smaller,
+// Phone: the section card is parked at the top of the screen (App.jsx, goTo), so centre the map in the
+// open part below it: pad the camera by the timeline plus the card, capped so a card with 'More' open
+// still leaves the map some room, and by the pager at the bottom.
+function phonePadding() {
+  const step = document.querySelector('.step.active')
+  const title = step?.querySelector('h2')
+  const timeline = document.querySelector('.timeline')?.offsetHeight ?? 0
+  const card = step && title ? step.getBoundingClientRect().bottom - title.getBoundingClientRect().top : 0
+  return { top: Math.round(Math.min(timeline + 12 + card, window.innerHeight * 0.6)), bottom: 60, left: 0, right: 0 }
+}
+
+// Laptop: the story column covers the left of the map, so centre the map in the open part to its right
+// (the active card's right edge, wide cards included, capped at half the screen) and below the timeline.
+function desktopPadding() {
+  const step = document.querySelector('.step.active')
+  const right = step ? step.getBoundingClientRect().right : document.querySelector('.story')?.getBoundingClientRect().right ?? 0
+  const timeline = document.querySelector('.timeline')?.offsetHeight ?? 0
+  return { top: timeline, bottom: 0, left: Math.round(Math.min(Math.max(right, 0), window.innerWidth * 0.5)), right: 0 }
+}
+
+// the chapter cameras were framed for the full width, so zoom out by the share the story column covers
+// (about half a level on a laptop) to keep the same area in view
+function desktopFit(v) {
+  const padding = desktopPadding()
+  const open = Math.max(window.innerWidth - padding.left, 1) / window.innerWidth
+  return { ...v, zoom: v.zoom + Math.log2(open), padding }
+}
+
+// chapter cameras are framed for a full-screen desktop map; the open map area on a phone is far smaller,
 // so pull back one zoom level there to keep the same area in view
 const fit = (view, is3d, spinning) => {
   const v = { pitch: 0, bearing: 0, ...view }
   if (!is3d) { v.pitch = 0; v.bearing = 0 }
   if (spinning) delete v.bearing   // keep turning from where the camera is, no snap back to north
-  return isNarrow() ? { ...v, zoom: v.zoom - 1 } : v
+  return isNarrow()
+    ? { ...v, zoom: v.zoom - 1, padding: phonePadding() }
+    : desktopFit(v)
 }
-
-const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 function applyTerrain(map, is3d) {
   map.setTerrain(is3d ? { source: 'dem', exaggeration: EXAGGERATION } : null)
   map.setLayoutProperty('hillshade', 'visibility', is3d ? 'visible' : 'none')
 }
 
-// A 2D / 3D button in the map's control stack. Turning 3D off also flattens the camera.
-class TerrainControl {
-  constructor(get, set) { this.get = get; this.set = set }
+// A one-button control in the map's stack (bottom right): the 2D / 3D switch and the rotation on/off.
+// look(on) gives the button's text, tooltip and whether it is usable.
+class ButtonControl {
+  constructor(className, look, get, set) { Object.assign(this, { className, look, get, set }) }
   onAdd() {
     this.el = document.createElement('div')
     this.el.className = 'maplibregl-ctrl maplibregl-ctrl-group'
     this.btn = document.createElement('button')
     this.btn.type = 'button'
-    this.btn.className = 'terrain-toggle'
+    this.btn.className = this.className
     this.btn.addEventListener('click', () => this.set(!this.get()))
     this.el.appendChild(this.btn)
     this.update()
@@ -182,9 +211,12 @@ class TerrainControl {
   }
   update() {
     const on = this.get()
-    this.btn.textContent = on ? '2D' : '3D'
-    this.btn.title = on ? 'Flat map' : 'Show terrain in 3D'
-    this.btn.setAttribute('aria-label', this.btn.title)
+    const { text, title, disabled = false, pressed } = this.look(on)
+    this.btn.textContent = text
+    this.btn.title = title
+    this.btn.disabled = disabled
+    this.btn.setAttribute('aria-label', title)
+    if (pressed != null) this.btn.setAttribute('aria-pressed', String(pressed))
   }
   onRemove() { this.el.remove() }
 }
@@ -196,8 +228,9 @@ export default function MapView({ data, chapter, selectedId, onSelectTown, rain,
   const popupRef = useRef(null)
   const streams = useRef([])   // [stream id, trigger mm/h or Infinity] for every segment
   const is3d = useRef(true)
-  // turns the camera slowly until the visitor drags, zooms, rotates, tilts or clicks the map; then it stays put
-  const spin = useRef(!reducedMotion())
+  // turns the camera slowly from the start, on every device, until the visitor drags, zooms, rotates, tilts or
+  // clicks the map; the rotate button (bottom right) stops and restarts it
+  const spin = useRef(true)
   const latest = useRef({ chapter, selectedId, rain })
   latest.current = { chapter, selectedId, rain }
 
@@ -213,16 +246,33 @@ export default function MapView({ data, chapter, selectedId, onSelectTown, rain,
     popupRef.current = popup
     if (import.meta.env.DEV) window.__map = map
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right')
-    const terrainCtrl = new TerrainControl(() => is3d.current, (on) => {
-      is3d.current = on
-      terrainCtrl.update()
-      if (!ready.current) return
-      spin.current = false   // the 2D/3D button counts as touching the map
-      applyTerrain(map, on)
-      map.easeTo({ ...fit(latest.current.chapter.view, on, false), duration: 800 })
-    })
+    // rotation on/off; any other touch of the map turns it off too, and this button turns it back on
+    const spinCtrl = new ButtonControl('map-toggle spin-toggle',
+      (on) => (is3d.current
+        ? { text: '⟳', title: on ? 'Stop rotating the map' : 'Rotate the map', pressed: on }
+        : { text: '⟳', title: 'Rotation needs the 3D view', pressed: false, disabled: true }),
+      () => spin.current, (on) => setSpin(on))
+    const setSpin = (on) => {
+      if (spin.current === on) return
+      spin.current = on
+      spinCtrl.update()
+    }
+    const terrainCtrl = new ButtonControl('map-toggle',
+      (on) => ({ text: on ? '2D' : '3D', title: on ? 'Flat map' : 'Show terrain in 3D' }),
+      () => is3d.current, (on) => {
+        is3d.current = on
+        terrainCtrl.update()
+        setSpin(false)   // the 2D/3D button counts as touching the map
+        spinCtrl.update()
+        if (!ready.current) return
+        applyTerrain(map, on)
+        map.easeTo({ ...fit(latest.current.chapter.view, on, false), duration: 800 })
+      })
     map.addControl(terrainCtrl, 'bottom-right')
+    map.addControl(spinCtrl, 'bottom-right')
     map.on('load', () => {
+      // on a phone start with the map credits folded into the (i) button: open, they cover the cards
+      if (isNarrow()) el.current.querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show')
       addLayers(map, data.layers)
       applyTerrain(map, is3d.current)
       ready.current = true
@@ -239,9 +289,9 @@ export default function MapView({ data, chapter, selectedId, onSelectTown, rain,
       if (t) popup.setLngLat(f.geometry.coordinates).setHTML(popupHtml(t)).addTo(map)
     })
     // only gestures and buttons carry an originalEvent; the story's own flyTo does not
-    const stopSpin = (e) => { if (e.originalEvent) spin.current = false }
+    const stopSpin = (e) => { if (e.originalEvent) setSpin(false) }
     for (const ev of ['dragstart', 'zoomstart', 'rotatestart', 'pitchstart']) map.on(ev, stopSpin)
-    map.on('click', () => { spin.current = false })
+    map.on('click', () => setSpin(false))
     let last = null, raf = 0
     const tick = (t) => {
       raf = requestAnimationFrame(tick)
