@@ -107,6 +107,7 @@ footer { color: var(--muted); font-size: 0.75rem; padding: 0 0 70px; pointer-eve
 .story { z-index: 2; }
 
 /* town popup: the data behind a dot's colour */
+.maplibregl-ctrl button.terrain-toggle { font: 600 12px/29px system-ui, sans-serif; color: var(--ink); }
 .town-popup .maplibregl-popup-content { padding: 10px 12px; border-radius: 10px; font: inherit; }
 .pp header { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-right: 14px; }
 .pp strong { font-size: 1rem; }

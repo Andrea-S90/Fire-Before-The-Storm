@@ -3,14 +3,14 @@
 //   vectors:   burned | streams | catchments | water | towns | reported (each has a legend entry);
 //              reported = outlines of the municipalities the news items name
 //   panel:     towns | hindcast | wind | rain | credits | about
-//   view:      MapLibre camera
+//   view:      MapLibre camera; pitch and bearing apply only while the 3D terrain is on
 //   time:      periods highlighted on the timeline, as pairs of keys of meta.json "dates"
 //   timeLabel: what the map shows, in words, next to the timeline
 //   news:      news reports as text cards (outlet, date, headline, link; never their photos or screenshots)
 //              and the towns each names (towns: ids; a line is drawn from the card to each)
 //   explainer: 'sentinel2' | 'nisar' | 'ash', a plain-language card on a satellite or on the ash formula
 //   burnedNote: an official burned-area figure (with its source) to compare with ours in a 'How we compute this' box
-const AVILA = { center: [-4.66, 40.38], zoom: 9.6 }
+const AVILA = { center: [-4.66, 40.38], zoom: 9.6, pitch: 50 }
 const PRE = ['pre_start', 'fire_start']
 const POST = ['post_start', 'post_end']
 const FIRE = ['fire_start', 'fire_end']
@@ -21,7 +21,7 @@ export const chapters = [
     body: 'In early October 2026, the first autumn rain washed ash from the Burgohondo fire into the rivers of Ávila. Tap water in Casavieja and Piedralaves was declared unfit to drink.',
     burnedNote: { official_ha: 33943, source: 'Reuters via Devdiscourse, 7 October 2026',
       url: 'https://www.devdiscourse.com/article/international/3988408-wildfire-ash-turns-spanish-mountain-river-black-contaminating-water-supply' },
-    view: { center: [-4.66, 40.38], zoom: 8.6 }, overlays: [], vectors: ['reported', 'towns'],
+    view: { center: [-4.66, 40.38], zoom: 8.6, pitch: 35 }, overlays: [], vectors: ['reported', 'towns'],
     time: [STORM], timeLabel: 'towns rated after the fire; the rain came in early October',
     news: [
       { outlet: 'El Debate', date: '28 July 2026', lang: 'es',

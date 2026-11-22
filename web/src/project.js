@@ -64,5 +64,6 @@ export const project = {
       'https://research.fs.usda.gov/treesearch/24066'],
     ['MapLibre GL JS', 'https://maplibre.org/'],
     ['OpenFreeMap basemap (OpenMapTiles, OpenStreetMap)', 'https://openfreemap.org/'],
+    ['AWS Terrain Tiles (Mapzen), the 3D terrain under the map', 'https://registry.opendata.aws/terrain-tiles/'],
   ],
 }

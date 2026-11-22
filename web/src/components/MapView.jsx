@@ -17,6 +17,15 @@ const STREAM_COLOR = ['case', PASSED, '#b2182b',
   ['interpolate', ['linear'], ['coalesce', ['get', 'p24'], 0], 0, '#4d9ac4', 0.4, '#fdae61', 0.7, '#b2182b']]
 
 const BASEMAP = 'https://tiles.openfreemap.org/styles/positron'
+// 3D terrain: AWS Terrain Tiles (Terrarium encoding, built from SRTM and other open DEMs), free and keyless.
+// A display aid only; the pipeline's own flow routing uses Copernicus GLO-30.
+const DEM = {
+  type: 'raster-dem', encoding: 'terrarium', tileSize: 256, maxzoom: 14,
+  tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+  attribution: '<a href="https://registry.opendata.aws/terrain-tiles/">Terrain Tiles</a> (Mapzen, AWS)',
+}
+// The Gredos relief reads true at about 1.5x; more starts to look like a cartoon.
+const EXAGGERATION = 1.5
 const levelColor = ['match', ['get', 'overall'], 'high', LEVEL_COLOR.high, 'medium', LEVEL_COLOR.medium,
   'low', LEVEL_COLOR.low, LEVEL_COLOR.unknown]
 
@@ -33,6 +42,12 @@ const VECTORS = {
 export const REPORTED = '#f2b705'
 
 function addLayers(map, layers) {
+  // two sources from the same tiles: MapLibre recommends not sharing one between terrain and hillshade
+  map.addSource('dem', DEM)
+  map.addSource('dem-shade', DEM)
+  map.addLayer({ id: 'hillshade', type: 'hillshade', source: 'dem-shade',
+    layout: { visibility: 'none' },
+    paint: { 'hillshade-exaggeration': 0.35, 'hillshade-shadow-color': '#5b5048' } })
   for (const l of layers) {
     map.addSource(`ov-${l.id}`, { type: 'image', url: dataUrl(l.url), coordinates: l.coordinates })
     map.addLayer({ id: `ov-${l.id}`, type: 'raster', source: `ov-${l.id}`,
@@ -122,7 +137,39 @@ function popupHtml(t) {
 
 // chapter cameras are framed for a full-screen desktop map; the phone map band is far smaller,
 // so pull back one zoom level there to keep the same area in view
-const fit = (view) => (isNarrow() ? { ...view, zoom: view.zoom - 1 } : view)
+const fit = (view, is3d) => {
+  const v = { pitch: 0, bearing: 0, ...view }
+  if (!is3d) { v.pitch = 0; v.bearing = 0 }
+  return isNarrow() ? { ...v, zoom: v.zoom - 1 } : v
+}
+
+function applyTerrain(map, is3d) {
+  map.setTerrain(is3d ? { source: 'dem', exaggeration: EXAGGERATION } : null)
+  map.setLayoutProperty('hillshade', 'visibility', is3d ? 'visible' : 'none')
+}
+
+// A 2D / 3D button in the map's control stack. Turning 3D off also flattens the camera.
+class TerrainControl {
+  constructor(get, set) { this.get = get; this.set = set }
+  onAdd() {
+    this.el = document.createElement('div')
+    this.el.className = 'maplibregl-ctrl maplibregl-ctrl-group'
+    this.btn = document.createElement('button')
+    this.btn.type = 'button'
+    this.btn.className = 'terrain-toggle'
+    this.btn.addEventListener('click', () => this.set(!this.get()))
+    this.el.appendChild(this.btn)
+    this.update()
+    return this.el
+  }
+  update() {
+    const on = this.get()
+    this.btn.textContent = on ? '2D' : '3D'
+    this.btn.title = on ? 'Flat map' : 'Show terrain in 3D'
+    this.btn.setAttribute('aria-label', this.btn.title)
+  }
+  onRemove() { this.el.remove() }
+}
 
 export default function MapView({ data, chapter, selectedId, onSelectTown, rain, onMap }) {
   const el = useRef(null)
@@ -130,12 +177,13 @@ export default function MapView({ data, chapter, selectedId, onSelectTown, rain,
   const ready = useRef(false)
   const popupRef = useRef(null)
   const streams = useRef([])   // [stream id, trigger mm/h or Infinity] for every segment
+  const is3d = useRef(true)
   const latest = useRef({ chapter, selectedId, rain })
   latest.current = { chapter, selectedId, rain }
 
   useEffect(() => {
     const map = new maplibregl.Map({
-      container: el.current, style: BASEMAP, ...fit(chapter.view), attributionControl: { compact: true },
+      container: el.current, style: BASEMAP, ...fit(chapter.view, is3d.current), attributionControl: { compact: true },
       // the wheel (and one finger on a phone) scrolls the story; Ctrl + wheel or two fingers zoom the map
       cooperativeGestures: true,
     })
@@ -144,9 +192,18 @@ export default function MapView({ data, chapter, selectedId, onSelectTown, rain,
     const popup = new maplibregl.Popup({ maxWidth: '280px', offset: 12, className: 'town-popup' })
     popupRef.current = popup
     if (import.meta.env.DEV) window.__map = map
-    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right')
+    map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right')
+    const terrainCtrl = new TerrainControl(() => is3d.current, (on) => {
+      is3d.current = on
+      terrainCtrl.update()
+      if (!ready.current) return
+      applyTerrain(map, on)
+      map.easeTo({ ...fit(latest.current.chapter.view, on), duration: 800 })
+    })
+    map.addControl(terrainCtrl, 'bottom-right')
     map.on('load', () => {
       addLayers(map, data.layers)
+      applyTerrain(map, is3d.current)
       ready.current = true
       applyChapter(map, data.layers, latest.current.chapter, latest.current.selectedId)
       map.getSource('streams').getData().then((fc) => {
@@ -179,7 +236,7 @@ export default function MapView({ data, chapter, selectedId, onSelectTown, rain,
   }, [rain])
 
   useEffect(() => {
-    mapRef.current?.flyTo({ ...fit(chapter.view), duration: 1200 })
+    mapRef.current?.flyTo({ ...fit(chapter.view, is3d.current), duration: 1200 })
     if (!chapter.vectors.includes('towns')) popupRef.current?.remove()
   }, [chapter])
 
