@@ -26,6 +26,11 @@ const DEM = {
 }
 // The Gredos relief reads true at about 1.5x; more starts to look like a cartoon.
 const EXAGGERATION = 1.5
+// Elevation tiles are only fetched this many degrees around the study area (the overlays' extent): enough for a
+// tilted, rotating camera, without loading the whole horizon.
+const DEM_PAD = 0.6
+// Auto-rotation while the story scrolls, until the visitor touches the map: one full turn in about 3 minutes.
+const SPIN_DEG_PER_S = 2
 const levelColor = ['match', ['get', 'overall'], 'high', LEVEL_COLOR.high, 'medium', LEVEL_COLOR.medium,
   'low', LEVEL_COLOR.low, LEVEL_COLOR.unknown]
 
@@ -41,10 +46,20 @@ const VECTORS = {
 
 export const REPORTED = '#f2b705'
 
+function demBounds(layers) {
+  const pts = layers.flatMap((l) => l.coordinates)
+  if (!pts.length) return undefined
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1])
+  return [Math.min(...xs) - DEM_PAD, Math.min(...ys) - DEM_PAD, Math.max(...xs) + DEM_PAD, Math.max(...ys) + DEM_PAD]
+}
+
 function addLayers(map, layers) {
-  // two sources from the same tiles: MapLibre recommends not sharing one between terrain and hillshade
-  map.addSource('dem', DEM)
-  map.addSource('dem-shade', DEM)
+  // two sources from the same tiles: MapLibre recommends not sharing one between terrain and hillshade.
+  // The hillshade reads them as 512 px tiles, i.e. one zoom level coarser: a quarter of the downloads (it was
+  // most of the 3D weight), and still sharp enough at the story's zoom levels.
+  const bounds = demBounds(layers)
+  map.addSource('dem', { ...DEM, bounds })
+  map.addSource('dem-shade', { ...DEM, tileSize: 512, bounds })
   map.addLayer({ id: 'hillshade', type: 'hillshade', source: 'dem-shade',
     layout: { visibility: 'none' },
     paint: { 'hillshade-exaggeration': 0.35, 'hillshade-shadow-color': '#5b5048' } })
@@ -137,11 +152,14 @@ function popupHtml(t) {
 
 // chapter cameras are framed for a full-screen desktop map; the phone map band is far smaller,
 // so pull back one zoom level there to keep the same area in view
-const fit = (view, is3d) => {
+const fit = (view, is3d, spinning) => {
   const v = { pitch: 0, bearing: 0, ...view }
   if (!is3d) { v.pitch = 0; v.bearing = 0 }
+  if (spinning) delete v.bearing   // keep turning from where the camera is, no snap back to north
   return isNarrow() ? { ...v, zoom: v.zoom - 1 } : v
 }
+
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 function applyTerrain(map, is3d) {
   map.setTerrain(is3d ? { source: 'dem', exaggeration: EXAGGERATION } : null)
@@ -178,12 +196,14 @@ export default function MapView({ data, chapter, selectedId, onSelectTown, rain,
   const popupRef = useRef(null)
   const streams = useRef([])   // [stream id, trigger mm/h or Infinity] for every segment
   const is3d = useRef(true)
+  // turns the camera slowly until the visitor drags, zooms, rotates, tilts or clicks the map; then it stays put
+  const spin = useRef(!reducedMotion())
   const latest = useRef({ chapter, selectedId, rain })
   latest.current = { chapter, selectedId, rain }
 
   useEffect(() => {
     const map = new maplibregl.Map({
-      container: el.current, style: BASEMAP, ...fit(chapter.view, is3d.current), attributionControl: { compact: true },
+      container: el.current, style: BASEMAP, ...fit(chapter.view, is3d.current, false), attributionControl: { compact: true },
       // the wheel (and one finger on a phone) scrolls the story; Ctrl + wheel or two fingers zoom the map
       cooperativeGestures: true,
     })
@@ -197,8 +217,9 @@ export default function MapView({ data, chapter, selectedId, onSelectTown, rain,
       is3d.current = on
       terrainCtrl.update()
       if (!ready.current) return
+      spin.current = false   // the 2D/3D button counts as touching the map
       applyTerrain(map, on)
-      map.easeTo({ ...fit(latest.current.chapter.view, on), duration: 800 })
+      map.easeTo({ ...fit(latest.current.chapter.view, on, false), duration: 800 })
     })
     map.addControl(terrainCtrl, 'bottom-right')
     map.on('load', () => {
@@ -217,9 +238,22 @@ export default function MapView({ data, chapter, selectedId, onSelectTown, rain,
       onSelectTown(f.properties.id)
       if (t) popup.setLngLat(f.geometry.coordinates).setHTML(popupHtml(t)).addTo(map)
     })
+    // only gestures and buttons carry an originalEvent; the story's own flyTo does not
+    const stopSpin = (e) => { if (e.originalEvent) spin.current = false }
+    for (const ev of ['dragstart', 'zoomstart', 'rotatestart', 'pitchstart']) map.on(ev, stopSpin)
+    map.on('click', () => { spin.current = false })
+    let last = null, raf = 0
+    const tick = (t) => {
+      raf = requestAnimationFrame(tick)
+      const dt = last == null ? 0 : Math.min(t - last, 100) / 1000
+      last = t
+      if (!spin.current || !is3d.current || !ready.current || map.isMoving()) return
+      map.setBearing(map.getBearing() + SPIN_DEG_PER_S * dt)
+    }
+    raf = requestAnimationFrame(tick)
     map.on('mouseenter', 'towns-circle', () => { map.getCanvas().style.cursor = 'pointer' })
     map.on('mouseleave', 'towns-circle', () => { map.getCanvas().style.cursor = '' })
-    return () => { ready.current = false; map.remove() }
+    return () => { ready.current = false; cancelAnimationFrame(raf); map.remove() }
     // the map is created once; chapter changes are applied by the effects below
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -236,7 +270,7 @@ export default function MapView({ data, chapter, selectedId, onSelectTown, rain,
   }, [rain])
 
   useEffect(() => {
-    mapRef.current?.flyTo({ ...fit(chapter.view, is3d.current), duration: 1200 })
+    mapRef.current?.flyTo({ ...fit(chapter.view, is3d.current, spin.current), duration: 1200 })
     if (!chapter.vectors.includes('towns')) popupRef.current?.remove()
   }, [chapter])
 
