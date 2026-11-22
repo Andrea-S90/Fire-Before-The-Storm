@@ -65,5 +65,7 @@ export const project = {
     ['MapLibre GL JS', 'https://maplibre.org/'],
     ['OpenFreeMap basemap (OpenMapTiles, OpenStreetMap)', 'https://openfreemap.org/'],
     ['AWS Terrain Tiles (Mapzen), the 3D terrain under the map', 'https://registry.opendata.aws/terrain-tiles/'],
+    ['Sentinel-2 cloudless 2016 by EOX IT Services GmbH (contains modified Copernicus Sentinel data 2016, CC BY 4.0), '
+      + 'the satellite basemap, from before the fire', 'https://s2maps.eu/'],
   ],
 }
