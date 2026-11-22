@@ -25,7 +25,8 @@ export default function About({ generated }) {
       <LinkList items={main} />
 
       <h4>See it in 3D</h4>
-      <p>Turn the fire area on screen, or place it on your desk or floor from a phone.</p>
+      <p>Turn the fire area on screen, or place it on your desk or floor from a phone. Placing it in the room works on
+        iPhones and on Android phones that support Google Play Services for AR; on other phones the 3D view still works.</p>
       <ARView />
 
       <h4>Project description</h4>
