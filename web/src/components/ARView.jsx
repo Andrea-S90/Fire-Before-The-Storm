@@ -23,11 +23,21 @@ export default function ARView() {
     if (state !== 'open' || !v) return
     const onLoad = () => setCanAr(Boolean(v.canActivateAR))
     const onStatus = (e) => setArFailed(e.detail.status === 'failed')
+    // When Android's Scene Viewer cannot open, Chrome comes back to this page with model-viewer's fallback hash;
+    // model-viewer then hides its AR button without an event, so say what happened.
+    const onHash = () => {
+      if (window.location.hash === '#model-viewer-no-ar-fallback') {
+        setArFailed(true)
+        setCanAr(false)
+      }
+    }
     v.addEventListener('load', onLoad)
     v.addEventListener('ar-status', onStatus)
+    window.addEventListener('hashchange', onHash)
     return () => {
       v.removeEventListener('load', onLoad)
       v.removeEventListener('ar-status', onStatus)
+      window.removeEventListener('hashchange', onHash)
     }
   }, [state])
 
@@ -69,8 +79,9 @@ export default function ARView() {
           About {Math.round(model.width_cm)} × {Math.round(model.depth_cm)} cm at real size, so it fits on a table.
           Relief exaggerated {model.exaggeration}×. It shows one moment, after the fire (data export
           of {model.data_generated.slice(0, 10)}), and does not follow the story.
-          {canAr === false && ' To place it in the room, open this page on an Android phone or an iPhone.'}
-          {arFailed && ' AR did not start on this device; the 3D view still works.'}
+          {canAr === false && !arFailed && ' To place it in the room, open this page on an Android phone or an iPhone.'}
+          {arFailed && ' AR did not start on this device. On Android it needs the Google app and Google Play Services'
+            + ' for AR; the 3D view above still works.'}
         </p>
       </dialog>
     </>
